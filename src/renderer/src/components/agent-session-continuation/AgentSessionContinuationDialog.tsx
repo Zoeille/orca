@@ -31,6 +31,8 @@ import {
 } from '@/lib/launch-agent-session-continuation'
 import { useAppStore } from '@/store'
 import { isTuiAgentEnabled } from '../../../../shared/tui-agent-selection'
+import type { AgentId } from '../../../../shared/custom-agent'
+import { isTuiAgent } from '../../../../shared/tui-agent-config'
 import type { TuiAgent } from '../../../../shared/types'
 import { chooseInitialContinuationAgent } from './agent-session-continuation-selection'
 
@@ -49,7 +51,7 @@ export function AgentSessionContinuationDialog({
 }: AgentSessionContinuationDialogProps): React.JSX.Element {
   const settings = useAppStore((state) => state.settings)
   const [detectedAgents, setDetectedAgents] = useState<TuiAgent[]>([])
-  const [selectedAgent, setSelectedAgent] = useState<TuiAgent | null>(null)
+  const [selectedAgent, setSelectedAgent] = useState<AgentId | null>(null)
   const [contextMode, setContextMode] = useState<AgentSessionContinuationContextMode>('focused')
   const [detecting, setDetecting] = useState(true)
   const [detectionFailed, setDetectionFailed] = useState(false)
@@ -121,7 +123,7 @@ export function AgentSessionContinuationDialog({
   }, [starting])
 
   const handleStart = async (): Promise<void> => {
-    if (!request || !selectedAgent || starting) {
+    if (!request || !selectedAgent || !isTuiAgent(selectedAgent) || starting) {
       return
     }
     const prompt = buildAgentSessionContinuationPrompt(request.source, contextMode)

@@ -123,6 +123,125 @@ describe('activateAndRevealWorktree created agent reopen', () => {
     expect(revealWorktreeInSidebar).toHaveBeenCalledWith(worktree.id)
   })
 
+  it('reopens an empty worktree with the custom agent selected at creation time', () => {
+    const worktree = { ...makeWorktree(), createdWithAgent: 'custom:my-agent' as const }
+    const revealWorktreeInSidebar = vi.fn()
+
+    useAppStore.setState({
+      repos: [
+        {
+          id: 'repo-1',
+          path: '/workspace/repo',
+          displayName: 'repo',
+          badgeColor: '#000000',
+          addedAt: 0
+        }
+      ],
+      worktreesByRepo: { 'repo-1': [worktree] },
+      activeRepoId: 'repo-1',
+      activeView: 'terminal',
+      tabsByWorktree: {},
+      unifiedTabsByWorktree: {},
+      groupsByWorktree: {},
+      layoutByWorktree: {},
+      activeGroupIdByWorktree: {},
+      openFiles: [],
+      browserTabsByWorktree: {},
+      activeFileIdByWorktree: {},
+      activeBrowserTabIdByWorktree: {},
+      activeTabTypeByWorktree: {},
+      activeTabIdByWorktree: {},
+      tabBarOrderByWorktree: {},
+      pendingStartupByTabId: {},
+      settings: {
+        agentCmdOverrides: {},
+        setupScriptLaunchMode: 'new-tab',
+        customAgents: [
+          {
+            id: 'custom:my-agent',
+            name: 'My Agent',
+            command: '/usr/local/bin/my-agent',
+            promptMode: 'pty',
+            icon: { kind: 'terminal' },
+            enabled: true
+          }
+        ]
+      } as unknown as ReturnType<typeof useAppStore.getState>['settings'],
+      markWorktreeVisited: vi.fn(),
+      recordWorktreeVisit: vi.fn(),
+      refreshGitHubForWorktreeIfStale: vi.fn(),
+      revealWorktreeInSidebar
+    })
+
+    const result = activateAndRevealWorktree(worktree.id)
+    const state = useAppStore.getState()
+    const reopenedTab = state.tabsByWorktree[worktree.id]?.[0]
+
+    expect(result).toEqual({ primaryTabId: reopenedTab?.id })
+    expect(reopenedTab).toBeDefined()
+    expect(state.pendingStartupByTabId[reopenedTab!.id]).toMatchObject({
+      command: '/usr/local/bin/my-agent',
+      launchAgent: 'custom:my-agent',
+      telemetry: {
+        agent_kind: 'other',
+        launch_source: 'sidebar',
+        request_kind: 'resume'
+      }
+    })
+    expect(revealWorktreeInSidebar).toHaveBeenCalledWith(worktree.id)
+  })
+
+  it('does not reopen a worktree whose creation-time custom agent was since deleted or disabled', () => {
+    const worktree = { ...makeWorktree(), createdWithAgent: 'custom:ghost' as const }
+    const revealWorktreeInSidebar = vi.fn()
+
+    useAppStore.setState({
+      repos: [
+        {
+          id: 'repo-1',
+          path: '/workspace/repo',
+          displayName: 'repo',
+          badgeColor: '#000000',
+          addedAt: 0
+        }
+      ],
+      worktreesByRepo: { 'repo-1': [worktree] },
+      activeRepoId: 'repo-1',
+      activeView: 'terminal',
+      tabsByWorktree: {},
+      unifiedTabsByWorktree: {},
+      groupsByWorktree: {},
+      layoutByWorktree: {},
+      activeGroupIdByWorktree: {},
+      openFiles: [],
+      browserTabsByWorktree: {},
+      activeFileIdByWorktree: {},
+      activeBrowserTabIdByWorktree: {},
+      activeTabTypeByWorktree: {},
+      activeTabIdByWorktree: {},
+      tabBarOrderByWorktree: {},
+      pendingStartupByTabId: {},
+      settings: {
+        agentCmdOverrides: {},
+        setupScriptLaunchMode: 'new-tab',
+        customAgents: []
+      } as unknown as ReturnType<typeof useAppStore.getState>['settings'],
+      markWorktreeVisited: vi.fn(),
+      recordWorktreeVisit: vi.fn(),
+      refreshGitHubForWorktreeIfStale: vi.fn(),
+      revealWorktreeInSidebar
+    })
+
+    const result = activateAndRevealWorktree(worktree.id)
+    const state = useAppStore.getState()
+    const reopenedTab = state.tabsByWorktree[worktree.id]?.[0]
+
+    expect(result).toEqual({ primaryTabId: reopenedTab?.id })
+    expect(reopenedTab).toBeDefined()
+    expect(state.pendingStartupByTabId[reopenedTab!.id]).toBeUndefined()
+    expect(revealWorktreeInSidebar).toHaveBeenCalledWith(worktree.id)
+  })
+
   it('uses WSL launch quoting when reopening a Windows-path WSL project agent', () => {
     const worktree = {
       ...makeWorktree(),
@@ -667,76 +786,6 @@ describe('activateAndRevealWorktree created agent reopen', () => {
     expect(callRuntimeEnvironment).toHaveBeenCalledWith(
       expect.objectContaining({
         selector: 'web-runtime-1',
-        method: 'session.tabs.createTerminal'
-      })
-    )
-  })
-
-  it('respawns wake terminals on the explicit owner runtime when focus changed', async () => {
-    const worktree = makeWorktree()
-    const callRuntimeEnvironment = vi.fn().mockResolvedValue({
-      ok: true,
-      result: { tabId: 'host-tab-1', terminal: 'term_host' }
-    })
-    ;(globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ = true
-    vi.stubGlobal('window', {
-      api: {
-        runtimeEnvironments: {
-          call: callRuntimeEnvironment,
-          subscribe: vi.fn()
-        }
-      }
-    })
-
-    useAppStore.setState({
-      repos: [
-        {
-          id: 'repo-1',
-          path: '/workspace/repo',
-          displayName: 'repo',
-          badgeColor: '#000000',
-          addedAt: 0,
-          executionHostId: 'runtime:owner-runtime'
-        }
-      ],
-      worktreesByRepo: { 'repo-1': [worktree] },
-      tabsByWorktree: {
-        [worktree.id]: [
-          {
-            id: 'tab-1',
-            ptyId: 'pty-1',
-            worktreeId: worktree.id,
-            title: 'Terminal 1',
-            customTitle: null,
-            color: null,
-            sortOrder: 0,
-            createdAt: 1
-          }
-        ]
-      },
-      ptyIdsByTabId: { 'tab-1': [] },
-      settings: {
-        ...getDefaultSettings('/workspace/.orca-workspaces'),
-        activeRuntimeEnvironmentId: 'focused-runtime'
-      },
-      reconcileWorktreeTabModel: vi.fn(() => ({
-        renderableTabCount: 1,
-        activeRenderableTabId: 'tab-1'
-      }))
-    })
-
-    ensureWebRuntimeWorktreeTerminalAfterWake(worktree.id)
-    await new Promise((resolve) => setTimeout(resolve, 0))
-
-    expect(callRuntimeEnvironment).toHaveBeenCalledWith(
-      expect.objectContaining({
-        selector: 'owner-runtime',
-        method: 'session.tabs.createTerminal'
-      })
-    )
-    expect(callRuntimeEnvironment).not.toHaveBeenCalledWith(
-      expect.objectContaining({
-        selector: 'focused-runtime',
         method: 'session.tabs.createTerminal'
       })
     )

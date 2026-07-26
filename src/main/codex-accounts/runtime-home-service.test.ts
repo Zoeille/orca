@@ -73,6 +73,7 @@ function createSettings(overrides: TestSettingsOverrides = {}): GlobalSettings {
     autoRenameBranchFromWork: false,
     branchPrefix: 'git-username',
     branchPrefixCustom: '',
+    customAgents: overrides.customAgents ?? [],
     theme: 'system',
     uiLanguage: 'system',
     appIcon: overrides.appIcon ?? 'classic',

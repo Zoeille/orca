@@ -14,6 +14,7 @@ import { resolveExplicitTerminalTitleAgentType } from '../../../shared/terminal-
 import { resolveCompatibleAgentTypeForOwner } from '../../../shared/agent-title-owner'
 import { resolvePaneAgentOwner } from '../../../shared/pane-agent-owner'
 import type { TerminalTab, TuiAgent } from '../../../shared/types'
+import { isTuiAgent } from '../../../shared/tui-agent-config'
 
 // A shell name or the tab's neutral default title (where inferred-interrupt reset parks it); blank titles are no evidence.
 function titleShowsNoAgent(title: string, defaultTitle?: string): boolean {
@@ -316,6 +317,6 @@ export function useTabAgent(tab: TerminalTab): TuiAgent | null {
     processAgent,
     processShellForeground,
     sleepingSessionAgent,
-    launchAgent: tab.launchAgent
+    launchAgent: tab.launchAgent && isTuiAgent(tab.launchAgent) ? tab.launchAgent : undefined
   })
 }

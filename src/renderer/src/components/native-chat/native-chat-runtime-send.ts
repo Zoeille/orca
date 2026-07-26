@@ -35,7 +35,6 @@ export const NATIVE_CHAT_IMAGE_ATTACHMENT_SETTLE_MS = 300
 // prompt. Not used on verified option commands — model-switch confirmation
 // observes the PTY and Ctrl+U can miss confirmation markers.
 export const NATIVE_CHAT_CLEAR_UNSUBMITTED_INPUT = '\x15'
-
 /** Cancels an in-flight send's pending pty writes (the delayed Enter, and any
  *  later question bodies/Enters). Safe to call after the send completes. */
 export type NativeChatSendHandle = {

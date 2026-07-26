@@ -8,6 +8,7 @@ import { CLIENT_PLATFORM } from '@/lib/new-workspace'
 import { TUI_AGENT_CONFIG } from '../../../shared/tui-agent-config'
 import { isTuiAgentEnabled } from '../../../shared/tui-agent-selection'
 import type { TuiAgent } from '../../../shared/types'
+import type { AgentId } from '../../../shared/custom-agent'
 import { translate } from '@/i18n/i18n'
 import { resolveLocalWindowsAgentStartupShell } from '../../../shared/windows-terminal-shell'
 import type { SessionOptionValue } from '../../../shared/native-chat-session-options'
@@ -34,7 +35,7 @@ export function planSourceControlAgentActionLaunch(args: {
   commandInput: string
   promptDelivery: 'auto-submit' | 'draft' | 'submit-after-ready'
   detectedAgents: TuiAgent[]
-  disabledAgents?: TuiAgent[]
+  disabledAgents?: AgentId[]
   cmdOverrides?: Partial<Record<TuiAgent, string>>
   agentArgs?: string | null
   sessionOptions?: Record<string, SessionOptionValue>

@@ -19,12 +19,12 @@ import type {
   TabGroupLayoutNode,
   TerminalColorOverrides,
   TerminalLayoutSnapshot,
-  TuiAgent,
   Worktree,
   WorktreeLineage,
   WorkspaceLineage,
   WorktreeLineageWarning
 } from './types'
+import type { AgentId } from './custom-agent'
 import type { TerminalPaneLayoutNode } from './types'
 import type {
   RuntimeMarkdownReadTabResult,
@@ -162,7 +162,7 @@ export type RuntimeMobileSessionTerminalTab = {
   ptyId?: string | null
   terminalTheme?: RuntimeMobileTerminalTheme
   agentStatus?: AgentStatusEntry | null
-  launchAgent?: TuiAgent
+  launchAgent?: AgentId
   startupCwd?: string
   parentLayout?: TerminalLayoutSnapshot
   /** Tab-level color/pin (per parentTabId), host-persisted for remote servers. */
@@ -613,7 +613,7 @@ type RuntimeTerminalCreateBaseRequestPayload = {
   launchConfig?: SleepingAgentLaunchConfig
   resumeProviderSession?: AgentProviderSessionMetadata
   launchToken?: string
-  launchAgent?: TuiAgent
+  launchAgent?: AgentId
   viewMode?: 'terminal' | 'chat'
   startupCommandDelivery?: StartupCommandDelivery
   title?: string

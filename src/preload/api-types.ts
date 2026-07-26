@@ -235,6 +235,7 @@ import type {
   WorkspaceSessionPatch,
   WorkspaceSessionState
 } from '../shared/types'
+import type { AgentId } from '../shared/custom-agent'
 import type { PtyModelRestoreNeededEvent } from '../shared/pty-model-restore-marker'
 import type {
   PtyRendererDeliveryHealthReply,
@@ -1305,7 +1306,7 @@ export type PreloadApi = {
       launchConfig?: SleepingAgentLaunchConfig
       resumeProviderSession?: AgentProviderSessionMetadata
       launchToken?: string
-      launchAgent?: TuiAgent
+      launchAgent?: AgentId
       startupCommandDelivery?: StartupCommandDelivery
       connectionId?: string | null
       worktreeId?: string
@@ -1323,7 +1324,7 @@ export type PreloadApi = {
       telemetry?: { agent_kind: AgentKind; launch_source: LaunchSource; request_kind: RequestKind }
     }) => Promise<{
       id: string
-      launchAgent?: TuiAgent
+      launchAgent?: AgentId
       launchConfig?: SleepingAgentLaunchConfig
       snapshot?: string
       snapshotCols?: number
@@ -2930,7 +2931,7 @@ export type PreloadApi = {
         launchConfig?: SleepingAgentLaunchConfig
         resumeProviderSession?: AgentProviderSessionMetadata
         launchToken?: string
-        launchAgent?: TuiAgent
+        launchAgent?: AgentId
         viewMode?: 'terminal' | 'chat'
         title?: string
         ptyId?: string

@@ -60,13 +60,13 @@ import type {
   FloatingTerminalCwdRequest,
   MarkdownDocument,
   SearchResult,
-  TuiAgent,
   UpdateStatus,
   WorktreeBaseStatusEvent,
   WorktreeDefaultTabsLaunch,
   WorktreeHeadIdentity,
   WorktreeRemoteBranchConflictEvent
 } from '../shared/types'
+import type { AgentId } from '../shared/custom-agent'
 import type { PtyModelRestoreNeededEvent } from '../shared/pty-model-restore-marker'
 import type {
   PtyRendererDeliveryHealthReply,
@@ -808,7 +808,7 @@ const api = {
       launchConfig?: SleepingAgentLaunchConfig
       resumeProviderSession?: AgentProviderSessionMetadata
       launchToken?: string
-      launchAgent?: TuiAgent
+      launchAgent?: AgentId
       startupCommandDelivery?: StartupCommandDelivery
       connectionId?: string | null
       worktreeId?: string
@@ -3540,7 +3540,7 @@ const api = {
         launchConfig?: SleepingAgentLaunchConfig
         resumeProviderSession?: AgentProviderSessionMetadata
         launchToken?: string
-        launchAgent?: TuiAgent
+        launchAgent?: AgentId
         viewMode?: 'terminal' | 'chat'
         title?: string
         ptyId?: string
@@ -3564,7 +3564,7 @@ const api = {
           launchConfig?: SleepingAgentLaunchConfig
           resumeProviderSession?: AgentProviderSessionMetadata
           launchToken?: string
-          launchAgent?: TuiAgent
+          launchAgent?: AgentId
           viewMode?: 'terminal' | 'chat'
           title?: string
           ptyId?: string

@@ -11,7 +11,7 @@ import type { StartupCommandDelivery } from '../../../../shared/codex-startup-de
 import type { ProjectExecutionRuntimeResolution } from '../../../../shared/project-execution-runtime'
 import type { EventProps } from '../../../../shared/telemetry-events'
 import type { TerminalOscColorQueryReplyColors } from '../../../../shared/terminal-osc-color-reply'
-import type { TuiAgent } from '../../../../shared/types'
+import type { AgentId } from '../../../../shared/custom-agent'
 import type { ExecutionHostId } from '../../../../shared/execution-host'
 import type { PtyDataMeta } from './pty-dispatcher'
 
@@ -53,7 +53,7 @@ export type PtyConnectResult = {
   /** The provider adopted an existing session rather than creating a fresh one.
    *  Startup commands may be ignored; recovery still requires separate ownership evidence. */
   isReattach?: boolean
-  launchAgent?: TuiAgent
+  launchAgent?: AgentId
   launchConfig?: SleepingAgentLaunchConfig
   snapshot?: string
   snapshotCols?: number
@@ -114,7 +114,7 @@ export type PtyTransport = {
     launchConfig?: SleepingAgentLaunchConfig
     resumeProviderSession?: AgentProviderSessionMetadata
     launchToken?: string
-    launchAgent?: TuiAgent
+    launchAgent?: AgentId
     startupCommandDelivery?: StartupCommandDelivery
     callbacks: PtyCallbacks
   }) => void | Promise<void | string | PtyConnectResult>
@@ -184,7 +184,7 @@ export type IpcPtyTransportOptions = {
   agentArgsOverride?: string | null
   agentLaunchPreferences?: AgentLaunchPreferences
   launchToken?: string
-  launchAgent?: TuiAgent
+  launchAgent?: AgentId
   startupCommandDelivery?: StartupCommandDelivery
   connectionId?: string | null
   executionHostId?: ExecutionHostId | null

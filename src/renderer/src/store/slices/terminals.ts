@@ -12,6 +12,7 @@ import type {
   WorkspaceKey,
   WorkspaceSessionState
 } from '../../../../shared/types'
+import type { AgentId } from '../../../../shared/custom-agent'
 import type {
   AgentProviderSessionMetadata,
   SleepingAgentLaunchConfig
@@ -455,7 +456,7 @@ function withTerminalTabPtyId(
 
 export type AutomaticAgentResumeClaim = {
   worktreeId: string
-  launchAgent: TuiAgent
+  launchAgent: AgentId
   providerSession: AgentProviderSessionMetadata
 }
 
@@ -508,7 +509,7 @@ export type TerminalSlice = {
       launchConfig?: SleepingAgentLaunchConfig
       resumeProviderSession?: AgentProviderSessionMetadata
       launchToken?: string
-      launchAgent?: TuiAgent
+      launchAgent?: AgentId
       /** Explicit CLI override for host-owned agent launches; omission uses host settings. */
       agentArgsOverride?: string | null
       draftPrompt?: string
@@ -565,8 +566,9 @@ export type TerminalSlice = {
       recordInteraction?: boolean
       /** Pre-allocated tab id (main mints it for CLI/runtime PTYs with a baked pane key); minted fresh on omit or cross-worktree collision. */
       id?: string
-      /** Coding-harness agent launched here, recorded so the tab bar shows the provider icon before the agent's first hook event. */
-      launchAgent?: TuiAgent
+      /** Coding-harness agent being launched in this tab, recorded so the tab
+       *  bar can show the provider icon before the agent's first hook event. */
+      launchAgent?: AgentId
       quickCommandLabel?: string | null
       /** Initial native-chat view mode; agent launches pass 'chat' when openAgentTabsInChatByDefault is on, else omitted for the 'terminal' default. */
       viewMode?: Tab['viewMode']
@@ -662,7 +664,7 @@ export type TerminalSlice = {
       launchConfig?: SleepingAgentLaunchConfig
       resumeProviderSession?: AgentProviderSessionMetadata
       launchToken?: string
-      launchAgent?: TuiAgent
+      launchAgent?: AgentId
       agentArgsOverride?: string | null
       draftPrompt?: string
       sessionOptions?: Record<string, SessionOptionValue>
@@ -682,7 +684,7 @@ export type TerminalSlice = {
     launchConfig?: SleepingAgentLaunchConfig
     resumeProviderSession?: AgentProviderSessionMetadata
     launchToken?: string
-    launchAgent?: TuiAgent
+    launchAgent?: AgentId
     agentArgsOverride?: string | null
     draftPrompt?: string
     sessionOptions?: Record<string, SessionOptionValue>

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PRODUCER_PAUSE_FAILSAFE_MS, SESSION_FORCE_KILL_RETRY_MS, Session } from './session'
 import type { SessionState, ShellReadyState } from './types'
-import type { TuiAgent } from '../../shared/types'
+import type { AgentId } from '../../shared/custom-agent'
 
 const killWithDescendantSweepMock = vi.hoisted(() => vi.fn())
 vi.mock('../pty-descendant-termination', () => ({
@@ -105,7 +105,7 @@ describe('Session', () => {
     shellReadyTimeoutMs?: number
     cols?: number
     rows?: number
-    launchAgent?: TuiAgent
+    launchAgent?: AgentId
     startupIngress?: {
       colors: { foreground: string; background: string }
       deadlineMs: number

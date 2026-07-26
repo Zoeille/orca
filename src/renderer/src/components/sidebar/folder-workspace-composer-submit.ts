@@ -15,7 +15,9 @@ import { activateAndRevealFolderWorkspace } from '@/lib/worktree-activation'
 import { isWorkItemLookupText } from '@/lib/work-item-lookup-text'
 import { TUI_AGENT_CONFIG } from '../../../../shared/tui-agent-config'
 import { isWindowsAbsolutePathLike } from '../../../../shared/cross-platform-path'
-import type { FolderWorkspace, ProjectGroup, TuiAgent } from '../../../../shared/types'
+import type { FolderWorkspace, ProjectGroup } from '../../../../shared/types'
+import type { AgentId, CustomAgentDefinition } from '../../../../shared/custom-agent'
+import { isCustomAgentId } from '../../../../shared/custom-agent'
 import { isWslUncPath } from '../../../../shared/wsl-paths'
 import { resolveLocalWindowsAgentStartupShell } from '../../../../shared/windows-terminal-shell'
 import type { AgentStartupShell } from '../../../../shared/tui-agent-startup-shell'
@@ -32,7 +34,7 @@ type FolderWorkspaceCreateInput = {
   name: string
   connectionId?: string | null
   linkedTask: FolderWorkspace['linkedTask']
-  createdWithAgent?: TuiAgent
+  createdWithAgent?: AgentId
   pendingFirstAgentMessageRename?: boolean
 }
 
@@ -42,12 +44,13 @@ type SubmitFolderWorkspaceCreateParams = {
   lastAutoName: string
   linkedWorkItem: LinkedWorkItemSummary | null
   note: string
-  quickAgent: TuiAgent | null
+  quickAgent: AgentId | null
   autoRenameBranchFromWork: boolean | undefined
   agentCmdOverrides: Record<string, string> | undefined
   agentArgs?: string | null
   agentEnv?: Record<string, string>
   sessionOptions?: Record<string, SessionOptionValue>
+  customAgents?: readonly CustomAgentDefinition[]
   terminalWindowsShell?: string | null
   isRemote?: boolean
   launchSource?: LaunchSource
@@ -67,7 +70,7 @@ export function getFolderWorkspaceAgentLaunchPlatform(
 }
 
 export function buildFolderWorkspaceLinkedStartupPlan(args: {
-  agent: TuiAgent
+  agent: AgentId
   linkedWorkItem: LinkedWorkItemSummary
   note: string
   agentCmdOverrides: Record<string, string> | undefined
@@ -77,6 +80,7 @@ export function buildFolderWorkspaceLinkedStartupPlan(args: {
   platform: NodeJS.Platform
   shell?: AgentStartupShell
   isRemote: boolean
+  customAgents?: readonly CustomAgentDefinition[]
 }): AgentStartupPlan | null {
   const { prompt, draftPrompt } = resolveQuickCreateLinkedWorkItemPrompt(
     args.linkedWorkItem,
@@ -93,7 +97,8 @@ export function buildFolderWorkspaceLinkedStartupPlan(args: {
         sessionOptions: args.sessionOptions,
         platform: args.platform,
         shell: args.shell,
-        isRemote: args.isRemote
+        isRemote: args.isRemote,
+        customAgents: args.customAgents
       })
     : null
   if (draftLaunchPlan) {
@@ -123,7 +128,8 @@ export function buildFolderWorkspaceLinkedStartupPlan(args: {
     platform: args.platform,
     shell: args.shell,
     isRemote: args.isRemote,
-    allowEmptyPromptLaunch: true
+    allowEmptyPromptLaunch: true,
+    customAgents: args.customAgents
   })
   if (startupPlan && linkedDraftPrompt) {
     startupPlan.draftPrompt = linkedDraftPrompt
@@ -132,14 +138,16 @@ export function buildFolderWorkspaceLinkedStartupPlan(args: {
 }
 
 async function preflightFolderWorkspaceAgentTrust(args: {
-  agent: TuiAgent | null
+  agent: AgentId | null
   workspacePath: string | null
   connectionId?: string | null
 }): Promise<void> {
   if (!args.agent || !window.api.agentTrust?.markTrusted) {
     return
   }
-  const preflight = TUI_AGENT_CONFIG[args.agent].preflightTrust
+  const preflight = isCustomAgentId(args.agent)
+    ? undefined
+    : TUI_AGENT_CONFIG[args.agent].preflightTrust
   if (!preflight || !args.workspacePath) {
     return
   }
@@ -166,6 +174,7 @@ export async function submitFolderWorkspaceCreate({
   agentArgs,
   agentEnv,
   sessionOptions,
+  customAgents,
   terminalWindowsShell,
   launchSource = 'sidebar',
   runtimeEnvironmentId = null,
@@ -199,7 +208,8 @@ export async function submitFolderWorkspaceCreate({
           sessionOptions,
           platform: launchPlatform,
           shell: launchShell,
-          isRemote: launchIsRemote
+          isRemote: launchIsRemote,
+          customAgents
         })
       : quickAgent
         ? buildAgentStartupPlan({
@@ -212,7 +222,8 @@ export async function submitFolderWorkspaceCreate({
             platform: launchPlatform,
             shell: launchShell,
             isRemote: launchIsRemote,
-            allowEmptyPromptLaunch: true
+            allowEmptyPromptLaunch: true,
+            customAgents
           })
         : null
   // Why: the pending badge should only appear when the submitted prompt can
@@ -262,7 +273,7 @@ export async function submitFolderWorkspaceCreate({
             ? { startupCommandDelivery: startupPlan.startupCommandDelivery }
             : {}),
           telemetry: {
-            agent_kind: tuiAgentToAgentKind(quickAgent),
+            agent_kind: isCustomAgentId(quickAgent) ? 'other' : tuiAgentToAgentKind(quickAgent),
             launch_source: launchSource,
             request_kind: 'new' as const
           }

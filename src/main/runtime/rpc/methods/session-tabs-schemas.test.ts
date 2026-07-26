@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { ActivateTab, CloseLifecycleTab, CloseTab, UpdatePaneLayout } from './session-tabs-schemas'
+import {
+  ActivateTab,
+  CloseLifecycleTab,
+  CloseTab,
+  CreateTerminalTab,
+  UpdatePaneLayout
+} from './session-tabs-schemas'
 
 const WT = 'id:wt'
 
@@ -70,6 +76,39 @@ describe('CloseLifecycleTab (session.tabs.closeLifecycle params)', () => {
         terminal: 'term-1'
       }).success
     ).toBe(false)
+  })
+})
+
+describe('CreateTerminalTab.agent / launchAgent (paired web/mobile session launches)', () => {
+  it('accepts a custom agent id for agent and launchAgent', () => {
+    const parsed = CreateTerminalTab.parse({
+      worktree: WT,
+      agent: 'custom:my-agent',
+      launchAgent: 'custom:my-agent'
+    })
+
+    expect(parsed.agent).toBe('custom:my-agent')
+    expect(parsed.launchAgent).toBe('custom:my-agent')
+  })
+
+  it('still accepts a built-in TUI agent id', () => {
+    const parsed = CreateTerminalTab.parse({
+      worktree: WT,
+      agent: 'codex',
+      launchAgent: 'codex'
+    })
+
+    expect(parsed.agent).toBe('codex')
+    expect(parsed.launchAgent).toBe('codex')
+  })
+
+  it('rejects a malformed agent id', () => {
+    expect(() =>
+      CreateTerminalTab.parse({
+        worktree: WT,
+        agent: 'not-a-real-agent'
+      })
+    ).toThrow('Unknown agent preset')
   })
 })
 

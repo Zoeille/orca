@@ -11,13 +11,13 @@ import {
 import { isResumableTuiAgent } from '../../../src/shared/agent-session-resume'
 import type { SleepingAgentLaunchConfig } from '../../../src/shared/agent-session-resume'
 import { buildAgentResumeStartupPlan } from '../../../src/shared/tui-agent-startup'
+import { isTuiAgent } from '../../../src/shared/tui-agent-config'
 import {
   resolveTuiAgentLaunchArgs,
   resolveTuiAgentLaunchEnv
 } from '../../../src/shared/tui-agent-launch-defaults'
 import { normalizeAiVaultResumeFilePath } from '../../../src/shared/ai-vault-resume-path'
 import type { TuiAgent } from '../../../src/shared/types'
-import { parseWslUncPath } from '../../../src/shared/wsl-paths'
 import { resolveWindowsShellStartupFamily } from '../../../src/shared/windows-terminal-shell'
 import type { RpcClient } from '../transport/rpc-client'
 import {
@@ -25,21 +25,11 @@ import {
   readMobileReviewTerminalSendAccepted,
   type MobileReviewTerminalTab
 } from './mobile-diff-review-rpc'
-import type { MobileAiVaultResumeTargetStatus } from '../agent-history/agent-history-resume-target'
-
-const NODE_PLATFORMS = new Set<NodeJS.Platform>([
-  'aix',
-  'android',
-  'darwin',
-  'freebsd',
-  'haiku',
-  'linux',
-  'openbsd',
-  'sunos',
-  'win32',
-  'cygwin',
-  'netbsd'
-])
+export {
+  readMobileRuntimeHostPlatform,
+  readMobileRuntimeTerminalWindowsShell,
+  resolveMobileAiVaultResumePlatform
+} from './ai-vault-resume-runtime-target'
 
 export function buildMobileAiVaultResumeCommand(args: {
   session: Pick<AiVaultSession, 'agent' | 'sessionId' | 'cwd' | 'codexHome'> &
@@ -137,7 +127,7 @@ export function buildMobileAiVaultResumeLaunch(args: {
         // real-home override must strip Codex homes at pane spawn like desktop.
         ...realHomeCodexResumeEnvDeletion(args.session),
         launchConfig: startupPlan.launchConfig,
-        launchAgent: startupPlan.agent
+        launchAgent: isTuiAgent(startupPlan.agent) ? startupPlan.agent : undefined
       }
     }
   }
@@ -275,50 +265,6 @@ export function createMobileAiVaultResumeMutationRegistry(
       bySessionId.delete(sessionId)
     }
   }
-}
-
-export function readMobileRuntimeHostPlatform(statusResult: unknown): NodeJS.Platform | null {
-  if (!statusResult || typeof statusResult !== 'object') {
-    return null
-  }
-  const hostPlatform = (statusResult as { hostPlatform?: unknown }).hostPlatform
-  return typeof hostPlatform === 'string' && NODE_PLATFORMS.has(hostPlatform as NodeJS.Platform)
-    ? (hostPlatform as NodeJS.Platform)
-    : null
-}
-
-export function readMobileRuntimeTerminalWindowsShell(statusResult: unknown): string | null {
-  if (!statusResult || typeof statusResult !== 'object') {
-    return null
-  }
-  const shell = (statusResult as { terminalWindowsShell?: unknown }).terminalWindowsShell
-  return typeof shell === 'string' && shell.trim().length > 0 ? shell : null
-}
-
-export function resolveMobileAiVaultResumePlatform(
-  targetStatus: MobileAiVaultResumeTargetStatus,
-  hostPlatform: NodeJS.Platform | null,
-  workspacePath?: string | null,
-  terminalPlatform?: NodeJS.Platform | null
-): NodeJS.Platform | null {
-  if (targetStatus === 'ssh') {
-    // Why: desktop builds SSH resume commands for the remote POSIX execution
-    // host instead of the phone or local desktop platform.
-    return 'linux'
-  }
-  if (targetStatus === 'local') {
-    if (terminalPlatform === 'linux' && hostPlatform === 'win32') {
-      // Why: Windows-hosted WSL project terminals run a POSIX shell even when
-      // the visible workspace path is a normal Windows path.
-      return 'linux'
-    }
-    if (workspacePath && parseWslUncPath(workspacePath)) {
-      // Why: a WSL UNC workspace on a Windows host runs in a Linux shell.
-      return 'linux'
-    }
-    return hostPlatform
-  }
-  return null
 }
 
 function getMobileAiVaultResumeCodexHome(

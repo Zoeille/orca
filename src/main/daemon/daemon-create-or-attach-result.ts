@@ -1,4 +1,4 @@
-import type { TuiAgent } from '../../shared/types'
+import type { AgentId } from '../../shared/custom-agent'
 import type { ShellReadyState, TerminalSnapshot } from './types'
 import type { AgentSessionClaimedSpawnResult } from '../../shared/agent-session-host-authority'
 import type { PtyIncarnationId } from '../../shared/pty-incarnation'
@@ -9,7 +9,7 @@ export type DaemonCreateOrAttachResult = {
   pid: number | null
   shellState: ShellReadyState
   historySeeded?: boolean
-  launchAgent?: TuiAgent
+  launchAgent?: AgentId
   /** Undefined only when talking to a daemon predating WSL session context. */
   wslDistro?: string | null
   agentSessionEnsure?: AgentSessionClaimedSpawnResult
@@ -17,11 +17,11 @@ export type DaemonCreateOrAttachResult = {
 }
 
 export function getDaemonSessionResultMetadata(session: {
-  launchAgent: TuiAgent | null
+  launchAgent: AgentId | null
   historySeeded: boolean | undefined
   wslDistro: string | null
 }): {
-  launchAgent?: TuiAgent
+  launchAgent?: AgentId
   historySeeded?: boolean
   wslDistro: string | null
 } {

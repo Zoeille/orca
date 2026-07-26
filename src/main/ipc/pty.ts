@@ -14,7 +14,7 @@ import {
 export { getBashShellReadyRcfileContent } from '../providers/local-pty-shell-ready'
 import type { OrcaRuntimeService } from '../runtime/orca-runtime'
 import type { Store } from '../persistence'
-import type { GlobalSettings, TuiAgent } from '../../shared/types'
+import type { GlobalSettings } from '../../shared/types'
 import { toSshExecutionHostId } from '../../shared/execution-host'
 import { normalizeRuntimePathForComparison } from '../../shared/cross-platform-path'
 import { terminalOutputBacklogCapChars } from '../../shared/terminal-scrollback-policy'
@@ -32,12 +32,13 @@ import {
   redactPtyIdForDiagnostics
 } from '../../shared/pty-delivery-diagnostics'
 import { recordCrashBreadcrumb } from '../crash-reporting/crash-breadcrumb-store'
-import { isTuiAgent } from '../../shared/tui-agent-config'
 import {
   normalizeAgentProviderSession,
   type AgentProviderSessionMetadata,
   type SleepingAgentLaunchConfig
 } from '../../shared/agent-session-resume'
+import { isAgentId } from '../../shared/custom-agent'
+import type { AgentId } from '../../shared/custom-agent'
 import type { ProjectExecutionRuntimeResolution } from '../../shared/project-execution-runtime'
 import {
   isWslShellName,
@@ -675,7 +676,7 @@ export type BuildPtyHostEnvOptions = {
    *  disk presence (cross-agent shadowing when both dirs exist). */
   launchCommand?: string
   /** Trusted agent identity for wrapped commands that cannot be recognized from text. */
-  launchAgent?: TuiAgent
+  launchAgent?: AgentId
   shellPath?: string
   isWsl?: boolean
   /** Distro for WSL spawns (null = Windows default distro); drives the WSL hook relay + endpoint repoint. Only read when isWsl. */
@@ -779,7 +780,7 @@ function getLocalOrcaCodexHomeEnvKeysToDelete(env: Record<string, string>): stri
 export type GetSelectedCodexHomePath = (
   target?: CodexAccountSelectionTarget,
   launchEnv?: NodeJS.ProcessEnv,
-  launchContext?: { workspacePath?: string; launchAgent?: TuiAgent }
+  launchContext?: { workspacePath?: string; launchAgent?: AgentId }
 ) => string | null
 export type PrepareCodexSessionResume = (args: {
   providerSession: AgentProviderSessionMetadata
@@ -3096,7 +3097,7 @@ export function registerPtyHandlers(
 
   const prepareCodexResumeHome = (args: {
     connectionId?: string | null
-    launchAgent?: TuiAgent
+    launchAgent?: AgentId
     providerSession?: AgentProviderSessionMetadata
     target: CodexAccountSelectionTarget
     launchEnv?: NodeJS.ProcessEnv
@@ -3234,7 +3235,7 @@ export function registerPtyHandlers(
               ? codexResumeHome.codexHomePath
               : (getSelectedCodexHomePath?.(codexSelectionTarget, env, {
                   workspacePath: cwd,
-                  launchAgent: isTuiAgent(args.launchAgent) ? args.launchAgent : undefined
+                  launchAgent: isAgentId(args.launchAgent) ? args.launchAgent : undefined
                 }) ?? null)
           )
         : null
@@ -3262,7 +3263,7 @@ export function registerPtyHandlers(
           stripInheritedOrcaCodexHome,
           githubAttributionEnabled: getSettings?.()?.enableGitHubAttribution ?? false,
           launchCommand: args.command,
-          launchAgent: isTuiAgent(args.launchAgent) ? args.launchAgent : undefined,
+          launchAgent: isAgentId(args.launchAgent) ? args.launchAgent : undefined,
           shellPath: daemonShellOverride ?? process.env.COMSPEC,
           isWsl: shouldSkipCodexHomeEnvForWindowsShell(daemonShellOverride, cwd),
           wslDistro: codexSelectionTarget.runtime === 'wsl' ? codexSelectionTarget.wslDistro : null,
@@ -3331,7 +3332,7 @@ export function registerPtyHandlers(
       if (args.startupCommandDelivery !== undefined) {
         spawnOptions.startupCommandDelivery = args.startupCommandDelivery
       }
-      if (isTuiAgent(args.launchAgent)) {
+      if (isAgentId(args.launchAgent)) {
         spawnOptions.launchAgent = args.launchAgent
       }
       if (args.worktreeId !== undefined) {
@@ -4147,7 +4148,7 @@ export function registerPtyHandlers(
         commandDelivery?: 'renderer' | 'provider'
         launchConfig?: SleepingAgentLaunchConfig
         resumeProviderSession?: AgentProviderSessionMetadata
-        launchAgent?: TuiAgent
+        launchAgent?: AgentId
         startupCommandDelivery?: StartupCommandDelivery
         connectionId?: string | null
         worktreeId?: string
@@ -4383,7 +4384,7 @@ export function registerPtyHandlers(
               ? codexResumeHome.codexHomePath
               : (getSelectedCodexHomePath?.(codexSelectionTarget, baseEnv, {
                   workspacePath: cwd,
-                  launchAgent: isTuiAgent(args.launchAgent) ? args.launchAgent : undefined
+                  launchAgent: isAgentId(args.launchAgent) ? args.launchAgent : undefined
                 }) ?? null)
           )
         : null
@@ -4420,7 +4421,7 @@ export function registerPtyHandlers(
             stripInheritedOrcaCodexHome,
             githubAttributionEnabled: getSettings?.()?.enableGitHubAttribution ?? false,
             launchCommand: args.command,
-            launchAgent: isTuiAgent(args.launchAgent) ? args.launchAgent : undefined,
+            launchAgent: isAgentId(args.launchAgent) ? args.launchAgent : undefined,
             shellPath: effectiveShellOverride ?? process.env.COMSPEC,
             isWsl: shouldSkipCodexHomeEnvForWindowsShell(effectiveShellOverride, cwd),
             wslDistro:
@@ -4488,7 +4489,7 @@ export function registerPtyHandlers(
       if (args.startupCommandDelivery !== undefined) {
         spawnOptions.startupCommandDelivery = args.startupCommandDelivery
       }
-      if (isTuiAgent(args.launchAgent)) {
+      if (isAgentId(args.launchAgent)) {
         spawnOptions.launchAgent = args.launchAgent
       }
       if (args.worktreeId !== undefined) {

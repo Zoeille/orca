@@ -25,6 +25,7 @@ import type { PtyTransport } from './pty-transport'
 import type { PtyTransportRecoveryState } from './pty-transport-types'
 import { fitPanes, isWindowsUserAgent } from './pane-helpers'
 import { getConnectionId, getConnectionIdFromState } from '@/lib/connection-context'
+import { isTuiAgent } from '../../../../shared/tui-agent-config'
 import {
   getExplicitRuntimeEnvironmentIdForWorktree,
   getRuntimeEnvironmentIdForWorktree
@@ -663,7 +664,7 @@ export default function TerminalPane({
     (leafId: string | null): boolean => {
       const detectedAgent = leafId ? (tabAgentTypeByLeaf[leafId] ?? null) : null
       const launchAgent = nativeChatLaunchAgentForLeaf({
-        launchAgent: terminalTab?.launchAgent,
+        launchAgent: isTuiAgent(terminalTab?.launchAgent) ? terminalTab.launchAgent : null,
         launchAgentLeafId: getTabWideAgentHintLeafId(),
         leafId,
         leafIds: getNativeChatLeafIds()
@@ -2841,7 +2842,7 @@ export default function TerminalPane({
     : null
   const chatPaneResolvedAgent = chatPane ? resolveTitleAgentForLeaf(chatPane.leafId) : null
   const chatPaneLaunchAgent = nativeChatLaunchAgentForLeaf({
-    launchAgent: terminalTab?.launchAgent,
+    launchAgent: isTuiAgent(terminalTab?.launchAgent) ? terminalTab.launchAgent : null,
     launchAgentLeafId: getTabWideAgentHintLeafId(),
     leafId: chatPane?.leafId ?? null,
     leafIds: getNativeChatLeafIds()
@@ -2857,7 +2858,7 @@ export default function TerminalPane({
     }
     return (
       nativeChatLaunchAgentForLeaf({
-        launchAgent: terminalTab?.launchAgent,
+        launchAgent: isTuiAgent(terminalTab?.launchAgent) ? terminalTab.launchAgent : null,
         launchAgentLeafId: getTabWideAgentHintLeafId(),
         leafId,
         leafIds: getNativeChatLeafIds()

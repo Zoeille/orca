@@ -1,5 +1,5 @@
 import type { TerminalOscLinkRange } from '../../shared/terminal-osc-link-ranges'
-import type { TuiAgent } from '../../shared/types'
+import type { AgentId } from '../../shared/custom-agent'
 import type { AgentSessionClaimedSpawnResult } from '../../shared/agent-session-host-authority'
 import type { PtyIncarnationId } from '../../shared/pty-incarnation'
 
@@ -19,7 +19,7 @@ export type PtySpawnResult = {
    *  provider could not publish a pid (e.g., race during spawn). */
   pid?: number | null
   /** Minimal allowlisted launch ownership returned by daemon reattach. */
-  launchAgent?: TuiAgent
+  launchAgent?: AgentId
   /** Local WSL context: null is native; undefined is unavailable/legacy. */
   wslDistro?: string | null
   /** ANSI snapshot of the terminal screen, present when reattaching to an

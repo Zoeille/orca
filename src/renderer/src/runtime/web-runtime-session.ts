@@ -23,7 +23,8 @@ import type {
   RuntimeCreateAgentSessionResult,
   RuntimeEnsureAgentSessionResult
 } from '../../../shared/agent-session-host-authority'
-import type { TerminalPaneLayoutNode, TuiAgent } from '../../../shared/types'
+import type { AgentId } from '../../../shared/custom-agent'
+import type { TerminalPaneLayoutNode } from '../../../shared/types'
 import type { AppState } from '../store/types'
 import { getRuntimeEnvironmentIdForWorktree } from '../lib/worktree-runtime-owner'
 import { useAppStore } from '../store'
@@ -120,8 +121,8 @@ type CreateWebRuntimeSessionTerminalArgs = {
   startupCommandDelivery?: StartupCommandDelivery
   launchConfig?: SleepingAgentLaunchConfig
   launchToken?: string
-  agent?: TuiAgent
-  launchAgent?: TuiAgent
+  agent?: AgentId
+  launchAgent?: AgentId
   agentSessionKind?: 'fresh' | 'resume'
   prompt?: string
   promptDelivery?: AgentPromptDelivery
@@ -156,7 +157,7 @@ export async function createWebRuntimeSessionTerminal(
 
 export async function createWebRuntimeAgentSessionTerminal(
   args: CreateWebRuntimeSessionTerminalArgs & {
-    agent: TuiAgent
+    agent: AgentId
     promptAfterReady: string
     submitPrompt: boolean
     forcePromptPaste: boolean

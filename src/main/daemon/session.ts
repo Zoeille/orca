@@ -9,8 +9,8 @@ import {
   type ShellReadyScanState
 } from '../shell-ready-marker-scanner'
 import { isPowerShellProcess } from '../../shared/shell-process-detection'
+import type { AgentId } from '../../shared/custom-agent'
 import { killWithDescendantSweep } from '../pty-descendant-termination'
-import type { TuiAgent } from '../../shared/types'
 import { randomUUID } from 'node:crypto'
 import { PhysicalExitTracker } from '../../shared/physical-exit-tracker'
 import {
@@ -76,7 +76,7 @@ export type SessionOptions = {
   cols: number
   rows: number
   terminalHandle?: string
-  launchAgent?: TuiAgent
+  launchAgent?: AgentId
   subprocess: SubprocessHandle
   shellReadySupported: boolean
   shellReadyTimeoutMs?: number
@@ -100,7 +100,7 @@ export class Session {
   readonly sessionId: string
   readonly incarnationId = randomUUID()
   readonly terminalHandle: string | null
-  readonly launchAgent: TuiAgent | null
+  readonly launchAgent: AgentId | null
   readonly wslDistro: string | null
   private _state: SessionState = 'running'
   private _shellState: ShellReadyState

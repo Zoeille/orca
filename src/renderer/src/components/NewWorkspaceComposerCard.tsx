@@ -45,6 +45,8 @@ import {
 import { getScreenSubmitModifierLabel } from '@/lib/screen-submit-shortcut'
 import { useContextualTour } from '@/components/contextual-tours/use-contextual-tour'
 import { filterEnabledTuiAgents } from '../../../shared/tui-agent-selection'
+import type { AgentId } from '../../../shared/custom-agent'
+import { isCustomAgentId, isCustomAgentEnabled } from '../../../shared/custom-agent'
 import type {
   GitHubWorkItem,
   GitLabWorkItem,
@@ -91,8 +93,8 @@ type NewWorkspaceComposerCardProps = {
   composerRef?: React.RefObject<HTMLDivElement | null>
   onComposerNodeChange?: (node: HTMLDivElement | null) => void
   nameInputRef?: React.RefObject<HTMLInputElement | null>
-  quickAgent: TuiAgent | null
-  onQuickAgentChange: (agent: TuiAgent | null) => void
+  quickAgent: AgentId | null
+  onQuickAgentChange: (agent: AgentId | null) => void
   eligibleRepos: RepoOption[]
   repoId: string
   projectOptions?: NewWorkspaceProjectOption[]
@@ -956,6 +958,7 @@ export default function NewWorkspaceComposerCard({
   const activeModal = useAppStore((s) => s.activeModal)
   const defaultTuiAgent = useAppStore((s) => s.settings?.defaultTuiAgent ?? null)
   const disabledTuiAgents = useAppStore((s) => s.settings?.disabledTuiAgents ?? [])
+  const customAgents = useAppStore((s) => s.settings?.customAgents ?? [])
   const updateSettings = useAppStore((s) => s.updateSettings)
   const nameInputFocusFrameRef = React.useRef<number | null>(null)
   const branchNameInputId = React.useId()
@@ -1005,7 +1008,7 @@ export default function NewWorkspaceComposerCard({
     setupControlsEnabled && setupConfig !== null && setupConfig.kind !== 'default-tabs'
 
   const handleSetDefaultAgent = React.useCallback(
-    (next: TuiAgent | 'blank' | null) => {
+    (next: AgentId | 'blank' | null) => {
       updateSettings({ defaultTuiAgent: next })
     },
     [updateSettings]
@@ -1049,11 +1052,12 @@ export default function NewWorkspaceComposerCard({
         disabledTuiAgents
       )
     )
-    return getAgentCatalog().filter(
-      (agent) =>
-        enabledIds.has(agent.id) && (detectedAgentIds === null || detectedAgentIds.has(agent.id))
+    return getAgentCatalog(customAgents).filter((agent) =>
+      isCustomAgentId(agent.id)
+        ? isCustomAgentEnabled(agent.id, customAgents)
+        : enabledIds.has(agent.id) && (detectedAgentIds === null || detectedAgentIds.has(agent.id))
     )
-  }, [detectedAgentIds, disabledTuiAgents])
+  }, [customAgents, detectedAgentIds, disabledTuiAgents])
 
   const handleAddRepo = React.useCallback((): void => {
     // Why: swapping activeModal would unmount the composer, so the override layers Add Project on top instead.
@@ -1459,6 +1463,7 @@ export default function NewWorkspaceComposerCard({
             onOpenManageAgents={onOpenAgentSettings}
             defaultAgent={defaultTuiAgent}
             onSetDefault={handleSetDefaultAgent}
+            customAgents={customAgents}
             triggerClassName="h-9 w-full border-input text-sm focus:border-ring focus:ring-[3px] focus:ring-ring/50"
             onTriggerEnter={createDisabled ? undefined : onCreate}
           />

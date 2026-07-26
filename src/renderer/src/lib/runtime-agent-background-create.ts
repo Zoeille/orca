@@ -2,7 +2,8 @@ import type { SleepingAgentLaunchConfig } from '../../../shared/agent-session-re
 import type { StartupCommandDelivery } from '../../../shared/codex-startup-delivery'
 import type { SessionOptionValue } from '../../../shared/native-chat-session-options'
 import type { RuntimeTerminalCreate } from '../../../shared/runtime-types'
-import type { TuiAgent } from '../../../shared/types'
+import type { AgentId } from '../../../shared/custom-agent'
+import { isTuiAgent } from '../../../shared/tui-agent-config'
 import {
   createAgentSessionCreateOperation,
   toAgentLaunchPreferences,
@@ -17,7 +18,7 @@ export async function createRuntimeAgentBackgroundTerminal(args: {
   worktreeId: string
   tabId: string
   leafId: string
-  agent: TuiAgent
+  agent: AgentId
   prompt?: string
   sessionOptions?: Record<string, SessionOptionValue>
   legacy: {
@@ -33,28 +34,30 @@ export async function createRuntimeAgentBackgroundTerminal(args: {
   const launchPreferences = toAgentLaunchPreferences(args.sessionOptions)
   return await runRemoteAgentSessionLaunch({
     environmentId: args.environmentId,
-    hostAuthority: () =>
-      operation.run((clientOperationId) =>
-        callRuntimeRpc<{ terminal: RuntimeTerminalCreate }>(
-          { kind: 'environment', environmentId: args.environmentId },
-          'terminal.createAgentSession',
-          withAgentSessionCreateOperationId(
-            {
-              worktree: toRuntimeWorktreeSelector(args.worktreeId),
-              agent: args.agent,
-              ...(args.prompt
-                ? { prompt: args.prompt, promptDelivery: 'auto-submit' as const }
-                : {}),
-              ...(launchPreferences ? { launchPreferences } : {}),
-              placement: { tabId: args.tabId, leafId: args.leafId },
-              // Why: local renderer owns the hidden tab; remote runtime should not reveal UI.
-              presentation: 'background'
-            },
-            clientOperationId
-          ),
-          { timeoutMs: 15_000 }
-        )
-      ),
+    hostAuthority: isTuiAgent(args.agent)
+      ? () =>
+          operation.run((clientOperationId) =>
+            callRuntimeRpc<{ terminal: RuntimeTerminalCreate }>(
+              { kind: 'environment', environmentId: args.environmentId },
+              'terminal.createAgentSession',
+              withAgentSessionCreateOperationId(
+                {
+                  worktree: toRuntimeWorktreeSelector(args.worktreeId),
+                  agent: args.agent,
+                  ...(args.prompt
+                    ? { prompt: args.prompt, promptDelivery: 'auto-submit' as const }
+                    : {}),
+                  ...(launchPreferences ? { launchPreferences } : {}),
+                  placement: { tabId: args.tabId, leafId: args.leafId },
+                  // Why: local renderer owns the hidden tab; remote runtime should not reveal UI.
+                  presentation: 'background'
+                },
+                clientOperationId
+              ),
+              { timeoutMs: 15_000 }
+            )
+          )
+      : undefined,
     legacy: ({ skipCompatibilityCheck }) =>
       callRuntimeRpc<{ terminal: RuntimeTerminalCreate }>(
         { kind: 'environment', environmentId: args.environmentId },

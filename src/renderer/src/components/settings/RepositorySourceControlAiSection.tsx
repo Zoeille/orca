@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import type React from 'react'
 import type { Repo } from '../../../../shared/types'
 import { normalizeSourceControlAiSettings } from '../../../../shared/source-control-ai'
+import { isTuiAgent } from '../../../../shared/tui-agent-config'
 import type { SourceControlAiRepoUpdate } from '../../../../shared/source-control-ai-recipe-save'
 import { useAppStore } from '../../store'
 import { getRepositorySourceControlAiSectionId } from './repository-settings-targets'
@@ -96,7 +97,9 @@ export function RepositorySourceControlAiSection({
         repoId={repo.id}
         repoAi={displayRepoAi}
         source={source}
-        defaultTuiAgent={settings?.defaultTuiAgent}
+        defaultTuiAgent={
+          isTuiAgent(settings?.defaultTuiAgent) ? settings.defaultTuiAgent : undefined
+        }
         savingActionIds={savingActionIds}
         actionDirtyById={actionDirtyById}
         onActionModeChange={updateActionMode}

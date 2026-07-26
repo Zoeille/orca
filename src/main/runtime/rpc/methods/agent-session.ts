@@ -15,7 +15,7 @@ import {
   AGENT_SESSION_OPERATION_FUTURE_SKEW_MS,
   parseAgentSessionOperationTimestamp
 } from '../../../../shared/agent-session-host-authority'
-import { isTuiAgent } from '../../../../shared/tui-agent-config'
+import { isAgentId } from '../../../../shared/custom-agent'
 import { isValidTerminalTabId } from '../../../../shared/terminal-tab-id'
 import type { OrcaRuntimeService } from '../../orca-runtime'
 import { defineMethod, type RpcAnyMethod } from '../core'
@@ -165,7 +165,7 @@ export const CreateAgentSessionParams: z.ZodType<RuntimeCreateAgentSessionReques
         'Invalid agent operation ID'
       ),
     worktree: WorktreeSelector,
-    agent: z.string().refine(isTuiAgent, 'Unknown agent preset'),
+    agent: z.string().refine(isAgentId, 'Unknown agent preset'),
     prompt: z
       .string()
       .refine(

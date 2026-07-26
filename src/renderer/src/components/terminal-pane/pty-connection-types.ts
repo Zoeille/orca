@@ -10,6 +10,7 @@ import type {
   AgentProviderSessionMetadata,
   SleepingAgentLaunchConfig
 } from '../../../../shared/agent-session-resume'
+import type { AgentId } from '../../../../shared/custom-agent'
 import type { TerminalKittyKeyboardModeTracker } from '../../../../shared/terminal-kitty-keyboard-mode-tracker'
 import type { PtyTransportRecoveryState } from './pty-transport-types'
 import type { SessionOptionValue } from '../../../../shared/native-chat-session-options'
@@ -29,7 +30,7 @@ export type PtyConnectionDeps = {
     launchConfig?: SleepingAgentLaunchConfig
     resumeProviderSession?: AgentProviderSessionMetadata
     launchToken?: string
-    launchAgent?: TuiAgent
+    launchAgent?: AgentId
     /** Explicit CLI override for host-owned agent launches; omission uses host settings. */
     agentArgsOverride?: string | null
     draftPrompt?: string

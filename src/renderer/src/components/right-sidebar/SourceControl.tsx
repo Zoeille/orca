@@ -209,6 +209,7 @@ import type {
   SourceControlViewMode,
   TuiAgent
 } from '../../../../shared/types'
+import type { AgentId } from '../../../../shared/custom-agent'
 import type {
   HostedReviewCreationEligibility,
   HostedReviewInfo,
@@ -702,9 +703,9 @@ export function shouldRenderCommitArea(
 }
 
 export function pickDefaultSourceControlAgent(
-  defaultAgent: TuiAgent | 'blank' | null | undefined,
+  defaultAgent: AgentId | 'blank' | null | undefined,
   detectedAgents: TuiAgent[],
-  disabledAgents?: TuiAgent[]
+  disabledAgents?: AgentId[]
 ): TuiAgent | null {
   return pickSourceControlLaunchAgent({
     defaultAgent,

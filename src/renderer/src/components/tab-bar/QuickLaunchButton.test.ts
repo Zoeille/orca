@@ -8,13 +8,21 @@ const {
   storeState,
   openSettingsPageMock,
   openSettingsTargetMock,
-  useDetectedAgentsMock
+  detectedAgentsMock
 } = vi.hoisted(() => ({
   shortcutLabelMock: vi.fn<() => string | null>(),
   storeState: {
     settings: {
       defaultTuiAgent: 'codex' as 'claude' | 'codex' | 'gemini' | 'blank' | null,
-      disabledTuiAgents: [] as string[]
+      disabledTuiAgents: [] as string[],
+      customAgents: [] as {
+        id: string
+        name: string
+        command: string
+        promptMode: 'pty' | 'argv' | 'template'
+        icon: { kind: 'terminal' }
+        enabled: boolean
+      }[]
     },
     worktreesByRepo: {} as Record<string, unknown[]>,
     repos: [] as unknown[],
@@ -23,11 +31,13 @@ const {
   },
   openSettingsPageMock: vi.fn(),
   openSettingsTargetMock: vi.fn(),
-  useDetectedAgentsMock: vi.fn(() => ({ detectedIds: ['claude', 'codex', 'gemini'] }))
+  detectedAgentsMock: vi.fn(() => ({
+    detectedIds: ['claude', 'codex', 'gemini'] as string[] | null
+  }))
 }))
 
 vi.mock('@/hooks/useDetectedAgents', () => ({
-  useDetectedAgents: useDetectedAgentsMock
+  useDetectedAgents: detectedAgentsMock
 }))
 
 vi.mock('@/hooks/useShortcutLabel', () => ({
@@ -53,10 +63,11 @@ vi.mock('@/lib/agent-catalog', async () => {
   }
 
   return {
-    getAgentCatalog: () => [
+    getAgentCatalog: (customAgents: { id: string; name: string }[] = []) => [
       { id: 'claude', label: 'Claude' },
       { id: 'codex', label: 'Codex' },
-      { id: 'gemini', label: 'Gemini' }
+      { id: 'gemini', label: 'Gemini' },
+      ...customAgents.map((agent) => ({ id: agent.id, label: agent.name }))
     ],
     AgentIcon: ({ agent }: { agent: string }) => ReactActual.createElement('span', null, agent)
   }
@@ -116,11 +127,13 @@ function rowMarkup(html: string, label: string): string {
 beforeEach(() => {
   shortcutLabelMock.mockReset()
   shortcutLabelMock.mockReturnValue(null)
-  useDetectedAgentsMock.mockClear()
   openSettingsPageMock.mockReset()
   openSettingsTargetMock.mockReset()
+  detectedAgentsMock.mockReset()
+  detectedAgentsMock.mockReturnValue({ detectedIds: ['claude', 'codex', 'gemini'] })
   storeState.settings.defaultTuiAgent = 'codex'
   storeState.settings.disabledTuiAgents = []
+  storeState.settings.customAgents = []
   storeState.worktreesByRepo = {}
   storeState.repos = []
   storeState.openSettingsPage = openSettingsPageMock
@@ -157,7 +170,7 @@ describe('QuickLaunchAgentMenuItems', () => {
 
     renderAgentMenuItems()
 
-    expect(useDetectedAgentsMock).toHaveBeenLastCalledWith({
+    expect(detectedAgentsMock).toHaveBeenLastCalledWith({
       kind: 'runtime',
       environmentId: 'env-1'
     })
@@ -177,7 +190,7 @@ describe('QuickLaunchAgentMenuItems', () => {
 
     renderAgentMenuItems()
 
-    expect(useDetectedAgentsMock).toHaveBeenLastCalledWith({
+    expect(detectedAgentsMock).toHaveBeenLastCalledWith({
       kind: 'runtime',
       environmentId: 'env-1'
     })
@@ -191,7 +204,7 @@ describe('QuickLaunchAgentMenuItems', () => {
 
     renderAgentMenuItems()
 
-    expect(useDetectedAgentsMock).toHaveBeenLastCalledWith({
+    expect(detectedAgentsMock).toHaveBeenLastCalledWith({
       kind: 'ssh',
       connectionId: 'ssh-target-1'
     })
@@ -205,6 +218,25 @@ describe('QuickLaunchAgentMenuItems', () => {
 
     storeState.settings.defaultTuiAgent = 'blank'
     expect(renderAgentMenuItems()).not.toContain('data-dropdown-shortcut="true"')
+  })
+
+  it('surfaces enabled custom agents before TUI agent detection resolves', () => {
+    detectedAgentsMock.mockReturnValue({ detectedIds: null })
+    storeState.settings.customAgents = [
+      {
+        id: 'custom:my-agent',
+        name: 'My Agent',
+        command: '/usr/local/bin/my-agent',
+        promptMode: 'pty',
+        icon: { kind: 'terminal' },
+        enabled: true
+      }
+    ]
+
+    const html = renderAgentMenuItems()
+
+    expect(html).toContain('My Agent')
+    expect(html).not.toContain('No agents detected')
   })
 })
 

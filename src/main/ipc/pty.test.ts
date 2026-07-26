@@ -9,7 +9,7 @@ import {
 import { CLIPBOARD_TEXT_MEASURE_YIELD_CODE_UNITS } from '../../shared/clipboard-text'
 import { redactPtyIdForDiagnostics } from '../../shared/pty-delivery-diagnostics'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../shared/constants'
-import type { TuiAgent } from '../../shared/types'
+import type { AgentId } from '../../shared/custom-agent'
 import type { AgentSessionOwnerBinding } from '../../shared/agent-session-host-authority'
 
 const isWindowsHost = process.platform === 'win32'
@@ -1534,7 +1534,7 @@ describe('registerPtyHandlers', () => {
     getSelectedCodexHomePath?: (
       target?: { runtime?: 'host' | 'wsl'; wslDistro?: string | null },
       launchEnv?: NodeJS.ProcessEnv,
-      launchContext?: { workspacePath?: string; launchAgent?: TuiAgent }
+      launchContext?: { workspacePath?: string; launchAgent?: AgentId }
     ) => string | null,
     getSettings?: () => {
       enableGitHubAttribution?: boolean
@@ -1544,7 +1544,7 @@ describe('registerPtyHandlers', () => {
     },
     // Why: PR #2662 finding 2 — accept an optional `command` so callers can exercise OMP target resolution (was untested).
     command?: string,
-    launchAgent?: TuiAgent,
+    launchAgent?: AgentId,
     cwd?: string,
     worktreeId?: string
   ): Promise<Record<string, string>> {
@@ -1840,7 +1840,7 @@ describe('registerPtyHandlers', () => {
         (
           _target?: { runtime?: 'host' | 'wsl'; wslDistro?: string | null },
           _launchEnv?: NodeJS.ProcessEnv,
-          _launchContext?: { workspacePath?: string; launchAgent?: TuiAgent }
+          _launchContext?: { workspacePath?: string; launchAgent?: AgentId }
         ) => null
       )
 
@@ -2449,7 +2449,7 @@ describe('registerPtyHandlers', () => {
         getSelectedCodexHomePath?: (
           target?: { runtime?: 'host' | 'wsl'; wslDistro?: string | null },
           launchEnv?: NodeJS.ProcessEnv,
-          launchContext?: { workspacePath?: string; launchAgent?: TuiAgent }
+          launchContext?: { workspacePath?: string; launchAgent?: AgentId }
         ) => string | null,
         getSettings?: () => {
           enableGitHubAttribution?: boolean
@@ -2463,7 +2463,7 @@ describe('registerPtyHandlers', () => {
           worktreeId?: string
           shellOverride?: string
           command?: string
-          launchAgent?: TuiAgent
+          launchAgent?: AgentId
           envToDelete?: string[]
         },
         supportsGitCredentialGuardHost = true
@@ -2511,7 +2511,7 @@ describe('registerPtyHandlers', () => {
         getSelectedCodexHomePath?: (
           target?: { runtime?: 'host' | 'wsl'; wslDistro?: string | null },
           launchEnv?: NodeJS.ProcessEnv,
-          launchContext?: { workspacePath?: string; launchAgent?: TuiAgent }
+          launchContext?: { workspacePath?: string; launchAgent?: AgentId }
         ) => string | null,
         getSettings?: () => {
           enableGitHubAttribution?: boolean
@@ -2523,7 +2523,7 @@ describe('registerPtyHandlers', () => {
           cwd?: string
           shellOverride?: string
           command?: string
-          launchAgent?: TuiAgent
+          launchAgent?: AgentId
         },
         supportsGitCredentialGuardHost = true
       ): Promise<Record<string, string>> {
@@ -2741,7 +2741,7 @@ describe('registerPtyHandlers', () => {
           (
             _target?: { runtime?: 'host' | 'wsl'; wslDistro?: string | null },
             _launchEnv?: NodeJS.ProcessEnv,
-            _launchContext?: { workspacePath?: string; launchAgent?: TuiAgent }
+            _launchContext?: { workspacePath?: string; launchAgent?: AgentId }
           ) => null
         )
 

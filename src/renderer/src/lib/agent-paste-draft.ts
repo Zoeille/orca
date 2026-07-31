@@ -1,3 +1,4 @@
+import type { GlobalSettings } from '../../../shared/types'
 import type { AgentId } from '../../../shared/custom-agent'
 import { TUI_AGENT_CONFIG, isTuiAgent } from '../../../shared/tui-agent-config'
 import { useAppStore } from '@/store'
@@ -12,7 +13,6 @@ import {
 } from '@/components/terminal-pane/terminal-bracketed-paste'
 import { waitForAgentReady } from './agent-ready-wait'
 import { getSettingsForWorktreeRuntimeOwner } from './worktree-runtime-owner'
-import type { GlobalSettings } from '../../../shared/types'
 import { sendAgentDraftPasteContent } from './agent-draft-paste-content'
 import { agentDeliversDraftViaNativePrefill } from './agent-native-draft-prefill'
 import { waitForAgentDraftInputReady } from './agent-draft-readiness'

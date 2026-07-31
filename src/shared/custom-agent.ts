@@ -4,6 +4,9 @@ import { isTuiAgent } from './tui-agent-config'
 export type CustomAgentId = `custom:${string}`
 export type AgentId = TuiAgent | CustomAgentId
 
+/** Stable empty default so store selectors don't return a fresh array per read. */
+export const EMPTY_CUSTOM_AGENTS: readonly CustomAgentDefinition[] = []
+
 export type CustomAgentPromptMode = 'pty' | 'argv' | 'template'
 
 export type CustomAgentIcon =

@@ -113,6 +113,7 @@ type TabBarProps = {
   onClose: (tabId: string) => void
   onCloseOthers: (tabId: string) => void
   onCloseToRight: (tabId: string) => void
+  onCloseToLeft: (tabId: string) => void
   onNewTerminalTab: () => void
   /** On Windows, opens a new terminal with a specific shell instead of the default. */
   onNewTerminalWithShell?: (shell: string) => void
@@ -207,7 +208,7 @@ function getTabLayoutSignature(
     return `${item.type}:${item.id}:${item.isPinned}:${isExpanded}:${Boolean(item.data.color)}:${label}`
   }
   if (item.type === 'browser') {
-    return `${item.type}:${item.id}:${item.isPinned}:${item.data.loading}:${item.data.loadError}:${label}`
+    return `${item.type}:${item.id}:${item.isPinned}:${item.data.loading}:${Boolean(item.data.loadError)}:${label}`
   }
   if (item.type === 'editor') {
     return `${item.type}:${item.id}:${item.isPinned}:${item.data.isDirty}:${item.data.isPreview}:${item.data.externalMutation ?? ''}:${status ?? ''}:${label}`
@@ -239,6 +240,7 @@ function TabBarInner({
   onClose,
   onCloseOthers,
   onCloseToRight,
+  onCloseToLeft,
   onNewTerminalTab,
   onNewTerminalWithShell,
   onNewBrowserTab,
@@ -1075,6 +1077,7 @@ function TabBarInner({
                       unifiedTabForItem ? () => toggleTabViewMode(unifiedTabForItem.id) : undefined
                     }
                     hasTabsToRight={index < orderedItems.length - 1}
+                    hasTabsToLeft={index > 0}
                     isActive={
                       (activeTabType === 'terminal' || activeTabType === 'simulator') &&
                       item.id === activeTabId
@@ -1085,6 +1088,7 @@ function TabBarInner({
                     onClose={onClose}
                     onCloseOthers={onCloseOthers}
                     onCloseToRight={onCloseToRight}
+                    onCloseToLeft={onCloseToLeft}
                     onSetCustomTitle={onSetCustomTitle}
                     onSetTabColor={onSetTabColor}
                     onTogglePin={() => togglePinned(item)}
@@ -1103,9 +1107,13 @@ function TabBarInner({
                     isActive={activeTabType === 'browser' && activeBrowserTabId === item.id}
                     isPinned={item.isPinned}
                     hasTabsToRight={index < orderedItems.length - 1}
+                    hasTabsToLeft={index > 0}
+                    tabCount={orderedItems.length}
                     onActivate={() => onActivateBrowserTab?.(item.id)}
                     onClose={() => onCloseBrowserTab?.(item.id)}
+                    onCloseOthers={() => onCloseOthers(item.id)}
                     onCloseToRight={() => onCloseToRight(item.id)}
+                    onCloseToLeft={() => onCloseToLeft(item.id)}
                     onDuplicate={() => onDuplicateBrowserTab?.(item.id)}
                     onTogglePin={() => togglePinned(item)}
                     dragData={dragData}
@@ -1134,10 +1142,14 @@ function TabBarInner({
                     isActive={activeTabType === 'simulator' && item.id === activeSimulatorTabId}
                     isPinned={item.isPinned}
                     hasTabsToRight={index < orderedItems.length - 1}
+                    hasTabsToLeft={index > 0}
+                    tabCount={orderedItems.length}
                     statusByRelativePath={statusByRelativePath}
                     onActivate={() => onActivateFile?.(item.id)}
                     onClose={() => onCloseFile?.(item.id)}
+                    onCloseOthers={() => onCloseOthers(item.id)}
                     onCloseToRight={() => onCloseToRight(item.id)}
+                    onCloseToLeft={() => onCloseToLeft(item.id)}
                     onCloseAll={() => onCloseAllFiles?.()}
                     onMakePermanent={() => {}}
                     onTogglePin={() => togglePinned(item)}
@@ -1157,10 +1169,14 @@ function TabBarInner({
                   }
                   isPinned={item.isPinned}
                   hasTabsToRight={index < orderedItems.length - 1}
+                  hasTabsToLeft={index > 0}
+                  tabCount={orderedItems.length}
                   statusByRelativePath={statusByRelativePath}
                   onActivate={() => onActivateFile?.(item.id)}
                   onClose={() => onCloseFile?.(item.id)}
+                  onCloseOthers={() => onCloseOthers(item.id)}
                   onCloseToRight={() => onCloseToRight(item.id)}
+                  onCloseToLeft={() => onCloseToLeft(item.id)}
                   onCloseAll={() => onCloseAllFiles?.()}
                   onMakePermanent={() =>
                     onMakePreviewFilePermanent?.(item.data.id, item.data.tabId)

@@ -1,8 +1,8 @@
 import type { TuiAgent } from '../../../shared/types'
-import type { AgentId } from '../../../shared/custom-agent'
 import {
   customAgentForId,
   isCustomAgentId,
+  type AgentId,
   type CustomAgentDefinition
 } from '../../../shared/custom-agent'
 import {

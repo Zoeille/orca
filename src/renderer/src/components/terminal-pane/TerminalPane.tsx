@@ -1,5 +1,14 @@
 /* eslint-disable max-lines -- Why: terminal pane component co-locates title state, layout serialization, and portal rendering to keep pane lifecycle consistent. */
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { createPortal } from 'react-dom'
 import type { CSSProperties } from 'react'
@@ -77,7 +86,8 @@ import {
   pruneSessionRestoredBannerPaneIds,
   removeSessionRestoredBannerPaneId,
   syncSessionRestoredBannerTitleSpace,
-  type SessionRestoredBannerDismissEvent
+  type SessionRestoredBannerDismissEvent,
+  type SessionRestoredBannerReason
 } from './session-restored-banner-pane-state'
 import { useSystemPrefersDark } from './use-system-prefers-dark'
 import { useTerminalPaneGlobalEffects } from './use-terminal-pane-global-effects'
@@ -243,6 +253,10 @@ type TerminalPaneProps = {
   onCloseTab: () => void
 }
 
+export type TerminalPaneHandle = {
+  closeActivePane: () => void
+}
+
 type TerminalQuickCommandEditorDialogProps = {
   command: TerminalQuickCommand
   onOpenChange: (open: boolean) => void
@@ -273,18 +287,21 @@ function formatClipboardImagePasteError(error: unknown): string {
   return `Image paste failed: ${detail}`
 }
 
-export default function TerminalPane({
-  tabId,
-  worktreeId,
-  cwd,
-  isActive,
-  isVisible = true,
-  isWorktreeActive = isVisible,
-  isolatedPaneKey = null,
-  showSplitButton = true,
-  onPtyExit,
-  onCloseTab
-}: TerminalPaneProps): React.JSX.Element {
+function TerminalPane(
+  {
+    tabId,
+    worktreeId,
+    cwd,
+    isActive,
+    isVisible = true,
+    isWorktreeActive = isVisible,
+    isolatedPaneKey = null,
+    showSplitButton = true,
+    onPtyExit,
+    onCloseTab
+  }: TerminalPaneProps,
+  ref: React.ForwardedRef<TerminalPaneHandle>
+): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const managerRef = useRef<PaneManager | null>(null)
   const paneFontSizesRef = useRef<Map<number, number>>(new Map())
@@ -791,9 +808,9 @@ export default function TerminalPane({
   const [shouldMeasureHiddenStartup, setShouldMeasureHiddenStartup] = useState(
     () => startup !== undefined && !isVisible
   )
-  const [sessionRestoredBannerPaneIds, setSessionRestoredBannerPaneIds] = useState<Set<number>>(
-    () => new Set()
-  )
+  const [sessionRestoredBannerPaneIds, setSessionRestoredBannerPaneIds] = useState<
+    Map<number, SessionRestoredBannerReason>
+  >(() => new Map())
   const consumeTabStartupCommand = useAppStore((store) => store.consumeTabStartupCommand)
   const [setupSplit] = useState(() => useAppStore.getState().pendingSetupSplitByTabId[tabId])
   const consumeTabSetupSplit = useAppStore((store) => store.consumeTabSetupSplit)
@@ -825,12 +842,15 @@ export default function TerminalPane({
     })
   }, [])
 
-  const showRestoredSessionBanner = useCallback((paneId: number): void => {
-    setSessionRestoredBannerPaneIds((prev) => {
-      const next = addSessionRestoredBannerPaneId(prev, paneId)
-      return next === prev ? prev : next
-    })
-  }, [])
+  const showRestoredSessionBanner = useCallback(
+    (paneId: number, reason: SessionRestoredBannerReason = 'restored'): void => {
+      setSessionRestoredBannerPaneIds((prev) => {
+        const next = addSessionRestoredBannerPaneId(prev, paneId, reason)
+        return next === prev ? prev : next
+      })
+    },
+    []
+  )
 
   const dismissSessionRestoredBanner = useCallback(
     (event: SessionRestoredBannerDismissEvent): void => {
@@ -1314,6 +1334,20 @@ export default function TerminalPane({
     [executeClosePane, tabId, worktreeId, getCloseDialogCopyKind]
   )
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      closeActivePane: (): void => {
+        const manager = managerRef.current
+        const pane = manager?.getActivePane() ?? manager?.getPanes()[0]
+        if (pane) {
+          handleRequestClosePane(pane.id)
+        }
+      }
+    }),
+    [handleRequestClosePane]
+  )
+
   const handleSearchSelectedText = useCallback((selectedText: string): void => {
     const state = useAppStore.getState()
     state.showRightSidebarSearch({ query: selectedText })
@@ -1672,6 +1706,11 @@ export default function TerminalPane({
     ]
   )
 
+  // Why leaf bindings are a dep: a parked or deferred tab mounts with no
+  // transport, so a queued restart has no ptyId to match on the mount pass. The
+  // reconnected PTY rewrites this map when it binds — `ptyIdsByTabId` does not,
+  // because a restored id is already listed there before the pane ever mounts.
+  const panePtyLayoutBindings = savedLayout.ptyIdsByLeafId
   useEffect(() => {
     const manager = managerRef.current
     if (!manager) {
@@ -1688,7 +1727,12 @@ export default function TerminalPane({
         handleRestartCodexPane(pane.id)
       }
     }
-  }, [consumePendingCodexPaneRestart, handleRestartCodexPane, pendingCodexPaneRestartIds])
+  }, [
+    consumePendingCodexPaneRestart,
+    handleRestartCodexPane,
+    panePtyLayoutBindings,
+    pendingCodexPaneRestartIds
+  ])
 
   useTerminalFontZoom({ isActive, containerRef, managerRef, paneFontSizesRef, settingsRef })
 
@@ -3182,3 +3226,5 @@ export default function TerminalPane({
     </>
   )
 }
+
+export default forwardRef(TerminalPane)

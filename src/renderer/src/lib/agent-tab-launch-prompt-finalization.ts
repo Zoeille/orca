@@ -1,11 +1,11 @@
-import { toast } from 'sonner'
-import { useAppStore } from '@/store'
-import { deliverLaunchPromptToAgentTab } from '@/lib/agent-launch-prompt-delivery'
+import {
+  deliverLaunchPromptToAgentTab,
+  seedNativeChatLaunchDraftForAgentTab
+} from '@/lib/agent-launch-prompt-delivery'
+import { createPasteReadinessTimeoutNotice } from '@/lib/launch-agent-paste-timeout-notice'
 import { seedCommandCodeSubmittedPromptStatus } from '@/lib/command-code-prompt-status-seed'
-import { track, tuiAgentToAgentKind } from '@/lib/telemetry'
-import { isCustomAgentId, type AgentId } from '../../../shared/custom-agent'
+import type { AgentId } from '../../../shared/custom-agent'
 import type { LaunchSource } from '../../../shared/telemetry-events'
-import { translate } from '@/i18n/i18n'
 
 type PromptDeliveryOutcome = { delivered: boolean; failureNotified: boolean }
 
@@ -22,50 +22,40 @@ export function finalizeAgentTabLaunchPrompt(args: {
 }): Promise<PromptDeliveryOutcome> | undefined {
   if (args.pastePrompt === null) {
     if (args.prompt) {
+      if (args.promptDelivery === 'draft') {
+        // The draft rode in on argv (Claude --prefill etc.), so no paste runs
+        // and deliverLaunchPromptToAgentTab never seeds. Mirror it into chat here.
+        seedNativeChatLaunchDraftForAgentTab({
+          tabId: args.tabId,
+          agent: args.agent,
+          text: args.prompt
+        })
+      }
       args.onPromptDelivered?.()
     }
     return undefined
   }
-  let failureNotified = false
-  const delivery = deliverLaunchPromptToAgentTab({
+  const timeoutNotice = createPasteReadinessTimeoutNotice({
+    worktreeId: args.worktreeId,
+    tabId: args.tabId,
+    agent: args.agent,
+    submitted: args.submitPastedPrompt
+  })
+  return deliverLaunchPromptToAgentTab({
     tabId: args.tabId,
     content: args.pastePrompt,
     agent: args.agent,
     submit: args.submitPastedPrompt,
     forcePaste: args.promptDelivery === 'submit-after-ready',
-    onTimeout: () => {
-      const state = useAppStore.getState()
-      const currentTab = (state.tabsByWorktree[args.worktreeId] ?? []).find(
-        (tab) => tab.id === args.tabId
-      )
-      if (currentTab?.ptyId === null) {
-        return
-      }
-      if (!currentTab || state.activeWorktreeId !== args.worktreeId) {
-        failureNotified = true
-        return
-      }
-      toast.message(
-        translate(
-          'auto.lib.launch.agent.in.new.tab.a5a1f7033f',
-          "Your {{value0}} wasn't sent — paste it once the agent is ready.",
-          { value0: args.submitPastedPrompt ? 'prompt' : 'notes' }
-        )
-      )
-      failureNotified = true
-      track('agent_error', {
-        error_class: 'paste_readiness_timeout',
-        agent_kind: isCustomAgentId(args.agent) ? 'other' : tuiAgentToAgentKind(args.agent)
-      })
-    }
+    onTimeout: timeoutNotice.onTimeout
   }).then((delivered) => {
     if (delivered) {
       if (args.agent === 'command-code' && args.submitPastedPrompt) {
+        // Command Code has no prompt-submit hook; seed working at delivery time.
         seedCommandCodeSubmittedPromptStatus(args.worktreeId, args.tabId, args.prompt)
       }
       args.onPromptDelivered?.()
     }
-    return { delivered, failureNotified: !delivered && failureNotified }
+    return { delivered, failureNotified: !delivered && timeoutNotice.wasNotified() }
   })
-  return delivery
 }

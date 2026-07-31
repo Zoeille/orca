@@ -27,6 +27,7 @@ import {
   normalizeHostedReviewHeadRef
 } from '../../shared/hosted-review-refs'
 import { normalizeGitHubPRMergeMethodSettings } from '../../shared/github-pr-merge-methods'
+import { summarizeProviderChecks } from '../../shared/provider-check-summary'
 import { isGitHubWorkItemsQueryTooLarge } from '../../shared/github-work-items-query-bounds'
 import { classifyGitHubUnavailable } from '../../shared/github-api-availability'
 import { parseTaskQuery, type ParsedTaskQuery } from '../../shared/task-query'
@@ -76,7 +77,6 @@ import { shouldHideNonOpenReviewOnDefaultBranch } from '../source-control/repo-d
 import { readLocalGitConfigSignature } from './local-git-config-signature'
 import {
   getGitHubApiRepositoryForRemote,
-  getIssueGitHubApiRepository,
   getOriginGitHubApiRepository,
   githubHostExecOptions,
   githubRepositorySlugArg,
@@ -283,16 +283,35 @@ export type PullRequestPushTarget = {
   maintainerCanModify?: boolean
 }
 
+// Why: only an explicit `origin` preference is origin-only; `upstream`/`auto`/
+// undefined keep the multi-candidate probe ordered upstream-first, matching
+// resolvePrWorkItemSource list semantics.
+async function resolvePullRequestLookupCandidates(
+  repoPath: string,
+  preference: IssueSourcePreference | undefined,
+  connectionId?: string | null,
+  localGitOptions: LocalGitExecOptions = {}
+): Promise<GitHubApiRepository[]> {
+  if (preference === 'origin') {
+    const origin = await getOriginGitHubApiRepository(repoPath, connectionId, localGitOptions)
+    return origin ? [origin] : []
+  }
+  return (await resolveGitHubApiRepositoryCandidates(repoPath, connectionId, localGitOptions))
+    .candidates
+}
+
 export async function getPullRequestPushTarget(
   repoPath: string,
   prNumber: number,
   connectionId?: string | null,
-  localGitOptions: LocalGitExecOptions = {}
+  localGitOptions: LocalGitExecOptions = {},
+  preference?: IssueSourcePreference
 ): Promise<PullRequestPushTarget | null> {
   const context = githubRepoContext(repoPath, connectionId, localGitOptions)
   const ghOptions = ghRepoExecOptions(context)
-  const { candidates } = await resolveGitHubApiRepositoryCandidates(
+  const candidates = await resolvePullRequestLookupCandidates(
     repoPath,
+    preference,
     connectionId,
     localGitOptions
   )
@@ -638,42 +657,19 @@ function checkRollupEntries(value: unknown): unknown[] {
 }
 
 function deriveWorkItemCheckSummary(value: unknown): GitHubWorkItem['checksSummary'] {
-  const entries = checkRollupEntries(value)
-  if (entries.length === 0) {
-    return { state: 'none', total: 0, passed: 0, failed: 0, pending: 0 }
-  }
-  let passed = 0
-  let failed = 0
-  let pending = 0
-  for (const entry of entries) {
-    if (typeof entry !== 'object' || entry === null) {
-      pending += 1
-      continue
-    }
-    const raw = entry as Record<string, unknown>
-    const conclusion = String(raw.conclusion ?? raw.state ?? '').toUpperCase()
-    const status = String(raw.status ?? '').toUpperCase()
-    if (['SUCCESS', 'NEUTRAL', 'SKIPPED'].includes(conclusion)) {
-      passed += 1
-    } else if (
-      ['FAILURE', 'ERROR', 'TIMED_OUT', 'CANCELLED', 'ACTION_REQUIRED', 'STARTUP_FAILURE'].includes(
-        conclusion
-      )
-    ) {
-      failed += 1
-    } else if (status === 'COMPLETED' && conclusion) {
-      failed += 1
-    } else {
-      pending += 1
-    }
-  }
-  return {
-    state: failed > 0 ? 'failure' : pending > 0 ? 'pending' : 'success',
-    total: entries.length,
-    passed,
-    failed,
-    pending
-  }
+  return summarizeProviderChecks(
+    checkRollupEntries(value).map((entry) => {
+      if (typeof entry !== 'object' || entry === null) {
+        return { status: '', conclusion: '' }
+      }
+      const raw = entry as Record<string, unknown>
+      // Why: StatusContext reports `state` and carries no `status`; CheckRun reports both.
+      return {
+        status: String(raw.status ?? ''),
+        conclusion: String(raw.conclusion ?? raw.state ?? '')
+      }
+    })
+  )
 }
 
 function mapPullRequestWorkItem(
@@ -954,14 +950,19 @@ async function fetchPullRequestWorkItemFromCandidates(
   repoPath: string,
   number: number,
   connectionId?: string | null,
-  localGitOptions: LocalGitExecOptions = {}
+  localGitOptions: LocalGitExecOptions = {},
+  preference?: IssueSourcePreference
 ): Promise<MainWorkItem | null> {
-  const { candidates } = await resolveGitHubApiRepositoryCandidates(
+  const candidates = await resolvePullRequestLookupCandidates(
     repoPath,
+    preference,
     connectionId,
     localGitOptions
   )
   if (candidates.length === 0) {
+    if (preference === 'origin') {
+      return null
+    }
     return fetchPullRequestWorkItem(repoPath, null, number, connectionId, localGitOptions)
   }
   for (const candidate of candidates) {
@@ -1953,38 +1954,55 @@ export async function getWorkItem(
   number: number,
   type?: 'issue' | 'pr',
   connectionId?: string | null,
-  localGitOptions: LocalGitExecOptions = {}
+  localGitOptions: LocalGitExecOptions = {},
+  preference?: IssueSourcePreference
 ): Promise<MainWorkItem | null> {
   await acquire()
   try {
+    // Why: listWorkItems uses resolveIssueGitHubApiRepositorySource; open-by-number
+    // must share that preference so origin/upstream toggles cannot disagree.
     if (type === 'issue') {
-      return await fetchIssueWorkItem(
+      const { source } = await resolveIssueGitHubApiRepositorySource(
         repoPath,
-        await getIssueGitHubApiRepository(repoPath, connectionId, localGitOptions),
-        number,
+        preference,
         connectionId,
         localGitOptions
       )
+      // Why: explicit origin with no origin identity must not bare-lookup ambient gh
+      // (same fail-closed rule as origin-pinned PR candidate resolution).
+      if (!source && preference === 'origin') {
+        return null
+      }
+      return await fetchIssueWorkItem(repoPath, source, number, connectionId, localGitOptions)
     }
     if (type === 'pr') {
       return await fetchPullRequestWorkItemFromCandidates(
         repoPath,
         number,
         connectionId,
-        localGitOptions
+        localGitOptions,
+        preference
       )
     }
 
     try {
-      const issue = await fetchIssueWorkItem(
+      const { source } = await resolveIssueGitHubApiRepositorySource(
         repoPath,
-        await getIssueGitHubApiRepository(repoPath, connectionId, localGitOptions),
-        number,
+        preference,
         connectionId,
         localGitOptions
       )
-      if (issue) {
-        return issue
+      if (source || preference !== 'origin') {
+        const issue = await fetchIssueWorkItem(
+          repoPath,
+          source,
+          number,
+          connectionId,
+          localGitOptions
+        )
+        if (issue) {
+          return issue
+        }
       }
     } catch (err) {
       // Why: only fall through to PR #N on a genuine 404; re-throw transient errors so a flake can't surface an unrelated PR.
@@ -1997,7 +2015,8 @@ export async function getWorkItem(
       repoPath,
       number,
       connectionId,
-      localGitOptions
+      localGitOptions,
+      preference
     )
   } catch {
     return null

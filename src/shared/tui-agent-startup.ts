@@ -13,7 +13,12 @@ import { planHermesStartupQuery } from './hermes-startup-query'
 import { inlineAgentDraftFitsPlatform } from './agent-draft-platform-limit'
 import type { SessionOptionValue } from './native-chat-session-options'
 import type { AgentId, CustomAgentDefinition } from './custom-agent'
-import { customAgentForId, isCustomAgentId } from './custom-agent'
+import {
+  CUSTOM_AGENT_PROMPT_PLACEHOLDER,
+  customAgentForId,
+  isCustomAgentId,
+  isCustomAgentPromptTemplateSafe
+} from './custom-agent'
 import {
   resolveTuiAgentConfig,
   resolveTuiAgentStartupCommand
@@ -103,12 +108,12 @@ export function buildAgentStartupPlan(args: {
 
   if (isCustomAgentId(agent) && customAgent?.promptMode === 'template') {
     const template = customAgent.promptTemplate
-    if (!template || !template.includes('{prompt}')) {
+    if (!template || !isCustomAgentPromptTemplateSafe(template)) {
       return null
     }
     return {
       agent,
-      launchCommand: template.replaceAll('{prompt}', quotedPrompt),
+      launchCommand: template.replaceAll(CUSTOM_AGENT_PROMPT_PLACEHOLDER, quotedPrompt),
       expectedProcess: config.expectedProcess,
       followupPrompt: null,
       launchConfig,

@@ -6,6 +6,42 @@ import {
   normalizeCustomAgents
 } from './custom-agent'
 
+describe('custom agent prompt template quoting', () => {
+  const templateBase = {
+    id: 'custom:forge' as const,
+    name: 'Forge',
+    command: 'forge',
+    icon: { kind: 'terminal' as const },
+    enabled: true,
+    promptMode: 'template' as const
+  }
+  const keptTemplate = (promptTemplate: string): string | undefined =>
+    normalizeCustomAgents([{ ...templateBase, promptTemplate }])[0]?.promptTemplate
+
+  it('keeps a placeholder that stands as its own shell word', () => {
+    expect(keptTemplate('forge --prompt {prompt}')).toBe('forge --prompt {prompt}')
+    expect(keptTemplate('forge --prompt={prompt}')).toBe('forge --prompt={prompt}')
+  })
+
+  it('drops a placeholder nested inside quotes, which would defeat the escaping', () => {
+    expect(keptTemplate('forge --prompt "{prompt}"')).toBeUndefined()
+    expect(keptTemplate("forge --prompt '{prompt}'")).toBeUndefined()
+    expect(keptTemplate('forge --prompt `{prompt}`')).toBeUndefined()
+  })
+
+  // Why: normalized settings are rewritten to disk, so rejecting the agent would
+  // delete a definition the user still owns. Fall back to the safe delivery mode.
+  it('keeps the agent and falls back to pty delivery when the template is unsafe', () => {
+    const [normalized] = normalizeCustomAgents([
+      { ...templateBase, promptTemplate: 'forge --prompt "{prompt}"' }
+    ])
+
+    expect(normalized?.id).toBe('custom:forge')
+    expect(normalized?.command).toBe('forge')
+    expect(normalized?.promptMode).toBe('pty')
+  })
+})
+
 describe('custom agent process name', () => {
   const base = {
     id: 'custom:forge',

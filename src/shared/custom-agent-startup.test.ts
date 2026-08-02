@@ -12,6 +12,19 @@ const agent: CustomAgentDefinition = {
   enabled: true
 }
 
+describe('custom agent template quoting', () => {
+  it('refuses to launch a template whose placeholder is nested in quotes', () => {
+    const plan = buildAgentStartupPlan({
+      agent: agent.id,
+      customAgent: { ...agent, promptTemplate: 'forge --prompt "{prompt}"' },
+      prompt: '$(id)',
+      cmdOverrides: {},
+      platform: 'linux'
+    })
+    expect(plan).toBeNull()
+  })
+})
+
 describe('custom agent expected process', () => {
   const launcherAgent: CustomAgentDefinition = {
     ...agent,

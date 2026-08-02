@@ -26,6 +26,8 @@ export type CustomAgentDefinition = {
   enabled: boolean
 }
 
+export const CUSTOM_AGENT_PROMPT_PLACEHOLDER = '{prompt}'
+const TEMPLATE_QUOTE_CHARS = new Set(['"', "'", '`'])
 const CUSTOM_AGENT_ID_PATTERN = /^custom:[a-z0-9][a-z0-9-]{0,63}$/
 const MAX_CUSTOM_AGENT_NAME_LENGTH = 80
 const MAX_CUSTOM_AGENT_COMMAND_LENGTH = 2000
@@ -73,6 +75,32 @@ export function createCustomAgentId(name: string, existing: Iterable<string> = [
   return candidate as CustomAgentId
 }
 
+/**
+ * The substituted prompt is already a self-delimiting shell word, so nesting the
+ * placeholder in another quote re-opens expansion (`"'$(id)'"` runs `id`).
+ */
+export function isCustomAgentPromptTemplateSafe(template: string): boolean {
+  let quote: string | null = null
+  for (let index = 0; index < template.length; index += 1) {
+    if (template.startsWith(CUSTOM_AGENT_PROMPT_PLACEHOLDER, index)) {
+      if (quote) {
+        return false
+      }
+      index += CUSTOM_AGENT_PROMPT_PLACEHOLDER.length - 1
+      continue
+    }
+    const char = template[index]
+    if (quote) {
+      if (char === quote) {
+        quote = null
+      }
+    } else if (TEMPLATE_QUOTE_CHARS.has(char)) {
+      quote = char
+    }
+  }
+  return template.includes(CUSTOM_AGENT_PROMPT_PLACEHOLDER)
+}
+
 export function normalizeCustomAgents(value: unknown): CustomAgentDefinition[] {
   if (!Array.isArray(value)) {
     return []
@@ -100,15 +128,20 @@ export function normalizeCustomAgents(value: unknown): CustomAgentDefinition[] {
       typeof item.processName === 'string'
         ? item.processName.trim().slice(0, MAX_CUSTOM_AGENT_PROCESS_NAME_LENGTH)
         : ''
-    const promptMode =
+    const declaredMode =
       item.promptMode === 'argv' || item.promptMode === 'template' ? item.promptMode : 'pty'
-    const promptTemplate =
+    const declaredTemplate =
       typeof item.promptTemplate === 'string'
         ? item.promptTemplate.slice(0, MAX_CUSTOM_AGENT_TEMPLATE_LENGTH)
         : undefined
-    if (promptMode === 'template' && (!promptTemplate || !promptTemplate.includes('{prompt}'))) {
-      continue
-    }
+    // Why: normalized settings get rewritten to disk, so an unsafe template must
+    // degrade to the safe delivery mode rather than delete the user's agent.
+    const templateUsable =
+      declaredMode === 'template' &&
+      declaredTemplate !== undefined &&
+      isCustomAgentPromptTemplateSafe(declaredTemplate)
+    const promptMode = declaredMode === 'template' && !templateUsable ? 'pty' : declaredMode
+    const promptTemplate = templateUsable ? declaredTemplate : undefined
     const icon = normalizeCustomAgentIcon(item.icon, name)
     if (!icon) {
       continue

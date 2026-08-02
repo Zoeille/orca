@@ -9596,7 +9596,7 @@
         },
         "CustomAgentDialog": {
           "required": "Name and command are required.",
-          "promptPlaceholder": "The template must include {prompt}.",
+          "promptPlaceholder": "The template must include {prompt} as a bare argument, not inside quotes.",
           "editTitle": "Edit custom agent",
           "createTitle": "Create custom agent",
           "description": "Configure a command Orca can launch in a terminal.",

@@ -6,6 +6,7 @@ import type {
   CustomAgentIcon,
   CustomAgentPromptMode
 } from '../../../../shared/custom-agent'
+import { isCustomAgentPromptTemplateSafe } from '../../../../shared/custom-agent'
 import { deriveCustomAgentProcessName } from '../../../../shared/tui-agent-command-resolution'
 import { Button } from '../ui/button'
 import {
@@ -73,11 +74,11 @@ export function CustomAgentDialog({
       )
       return
     }
-    if (promptMode === 'template' && !promptTemplate.includes('{prompt}')) {
+    if (promptMode === 'template' && !isCustomAgentPromptTemplateSafe(promptTemplate)) {
       toast.error(
         translate(
           'auto.components.settings.CustomAgentDialog.promptPlaceholder',
-          'The template must include {prompt}.'
+          'The template must include {prompt} as a bare argument, not inside quotes.'
         )
       )
       return

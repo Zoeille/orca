@@ -12,6 +12,36 @@ const agent: CustomAgentDefinition = {
   enabled: true
 }
 
+describe('custom agent expected process', () => {
+  const launcherAgent: CustomAgentDefinition = {
+    ...agent,
+    promptMode: 'pty',
+    command: 'doppler run -- forge --tui'
+  }
+
+  it('derives the process from the first command token when none is declared', () => {
+    const plan = buildAgentStartupPlan({
+      agent: launcherAgent.id,
+      customAgent: launcherAgent,
+      prompt: 'inspect',
+      cmdOverrides: {},
+      platform: 'linux'
+    })
+    expect(plan?.expectedProcess).toBe('doppler')
+  })
+
+  it('prefers the declared process name over the launcher token', () => {
+    const plan = buildAgentStartupPlan({
+      agent: launcherAgent.id,
+      customAgent: { ...launcherAgent, processName: 'forge' },
+      prompt: 'inspect',
+      cmdOverrides: {},
+      platform: 'linux'
+    })
+    expect(plan?.expectedProcess).toBe('forge')
+  })
+})
+
 describe('custom agent startup', () => {
   it('substitutes a safely quoted prompt in a template', () => {
     const plan = buildAgentStartupPlan({

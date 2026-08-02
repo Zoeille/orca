@@ -71,6 +71,12 @@ export function resolveTuiAgentStartupCommand(
   }
 }
 
+/** Process name Orca watches when the agent declares none — the command's own binary. */
+export function deriveCustomAgentProcessName(command: string | undefined): string {
+  const token = command ? getFirstCommandToken(command) : ''
+  return token ? getCommandTokenPathBasename(token) : ''
+}
+
 export function resolveTuiAgentConfig(
   agent: AgentId,
   customAgent: CustomAgentDefinition | undefined
@@ -78,11 +84,13 @@ export function resolveTuiAgentConfig(
   if (!isCustomAgentId(agent)) {
     return TUI_AGENT_CONFIG[agent]
   }
-  const commandToken = customAgent?.command ? getFirstCommandToken(customAgent.command) : ''
   return {
     detectCmd: '',
     launchCmd: '',
-    expectedProcess: commandToken ? getCommandTokenPathBasename(commandToken) : agent,
+    expectedProcess:
+      customAgent?.processName?.trim() ||
+      deriveCustomAgentProcessName(customAgent?.command) ||
+      agent,
     promptInjectionMode: customAgent?.promptMode === 'argv' ? 'argv' : 'stdin-after-start'
   }
 }

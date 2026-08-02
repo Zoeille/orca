@@ -1,6 +1,6 @@
 import type { TuiAgent } from './types'
-import type { AgentId } from './custom-agent'
-import { isCustomAgentId } from './custom-agent'
+import type { AgentId, CustomAgentDefinition } from './custom-agent'
+import { customAgentForId, isCustomAgentId } from './custom-agent'
 import { isTuiAgent } from './tui-agent-config'
 
 // Keep this order in sync with the desktop agent catalog. It defines the
@@ -105,6 +105,20 @@ export function isTuiAgentEnabled(agent: AgentId, disabled?: Iterable<unknown> |
     return true
   }
   return !normalizeDisabledTuiAgents(disabled).includes(agent)
+}
+
+/** Single enablement rule: built-ins use the disabled list, customs their own flag. */
+export function isAgentEnabled(
+  agent: AgentId,
+  settings: {
+    disabledTuiAgents?: Iterable<unknown> | null
+    customAgents?: readonly CustomAgentDefinition[] | null
+  }
+): boolean {
+  if (isCustomAgentId(agent)) {
+    return customAgentForId(agent, settings.customAgents)?.enabled === true
+  }
+  return isTuiAgentEnabled(agent, settings.disabledTuiAgents)
 }
 
 export function filterEnabledTuiAgents<T extends AgentId>(

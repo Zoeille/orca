@@ -5603,7 +5603,9 @@ describe('Store', () => {
     expect(updated.disabledTuiAgents).toEqual(['gemini', 'opencode'])
   })
 
-  it('keeps a disabled custom agent id across restart instead of stripping it', async () => {
+  // Why: custom agents are gated by their own `enabled` flag, so a custom id
+  // stored here would be state no reader consults.
+  it('drops custom agent ids from the built-in disabled list on load', async () => {
     writeFileSync(
       join(testState.dir, 'orca-data.json'),
       JSON.stringify({
@@ -5614,11 +5616,17 @@ describe('Store', () => {
     )
     const store = await createStore()
 
-    expect(store.getSettings().disabledTuiAgents).toEqual([
-      'codex',
-      'custom:forge',
-      'claude-agent-teams'
-    ])
+    expect(store.getSettings().disabledTuiAgents).toEqual(['codex', 'claude-agent-teams'])
+  })
+
+  it('drops custom agent ids from the built-in disabled list on update', async () => {
+    const store = await createStore()
+
+    const updated = await store.updateSettings({
+      disabledTuiAgents: ['gemini', 'custom:forge'] as never
+    })
+
+    expect(updated.disabledTuiAgents).toEqual(['gemini'])
   })
 
   it('normalizes malformed persisted custom agents on load', async () => {

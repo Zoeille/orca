@@ -16,11 +16,7 @@ import {
 } from 'lucide-react'
 import type { GlobalSettings, TuiAgent } from '../../../../shared/types'
 import type { AgentId, CustomAgentDefinition } from '../../../../shared/custom-agent'
-import {
-  createCustomAgentId,
-  customAgentForId,
-  isCustomAgentId
-} from '../../../../shared/custom-agent'
+import { createCustomAgentId, isCustomAgentId } from '../../../../shared/custom-agent'
 import { getAgentCatalog, AgentIcon } from '@/lib/agent-catalog'
 import { useDetectedAgents, type AgentDetectionTarget } from '@/hooks/useDetectedAgents'
 import { useAppStore } from '@/store'
@@ -47,6 +43,7 @@ import {
   SettingsSwitchRow
 } from './SettingsFormControls'
 import {
+  isAgentEnabled,
   isTuiAgentEnabled,
   normalizeDisabledTuiAgents
 } from '../../../../shared/tui-agent-selection'
@@ -836,7 +833,7 @@ export function AgentsPane({
   // so the Auto pill should only light up when the default is null OR when a
   // selected agent id is no longer detected on PATH.
   const isCustomDefault =
-    isCustomAgentId(defaultAgent) && customAgentForId(defaultAgent, customAgents)?.enabled === true
+    isCustomAgentId(defaultAgent) && isAgentEnabled(defaultAgent, { customAgents })
   const isAutoDefault =
     defaultAgent === null ||
     (defaultAgent !== 'blank' &&

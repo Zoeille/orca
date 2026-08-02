@@ -726,9 +726,7 @@ describe('useComposerState host-context boundaries', () => {
 
   it("checks a custom agent's own enabled flag instead of the TUI-only enablement gate", () => {
     expect(HOOK_SOURCE).toContain('function isRequestedAgentEnabled(')
-    expect(HOOK_SOURCE).toContain(
-      'isCustomAgentId(agent)\n    ? customAgentForId(agent, customAgents)?.enabled === true\n    : isTuiAgentEnabled(agent, disabledTuiAgents)'
-    )
+    expect(HOOK_SOURCE).toContain('isAgentEnabled(agent, { disabledTuiAgents, customAgents })')
 
     const folderTargetSubmit = sourceBetween(
       HOOK_SOURCE,

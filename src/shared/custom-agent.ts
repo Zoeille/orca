@@ -18,6 +18,8 @@ export type CustomAgentDefinition = {
   id: CustomAgentId
   name: string
   command: string
+  /** Process to watch when `command` is a launcher (`npx …`, `doppler run -- …`). */
+  processName?: string
   promptMode: CustomAgentPromptMode
   promptTemplate?: string
   icon: CustomAgentIcon
@@ -28,6 +30,7 @@ const CUSTOM_AGENT_ID_PATTERN = /^custom:[a-z0-9][a-z0-9-]{0,63}$/
 const MAX_CUSTOM_AGENT_NAME_LENGTH = 80
 const MAX_CUSTOM_AGENT_COMMAND_LENGTH = 2000
 const MAX_CUSTOM_AGENT_TEMPLATE_LENGTH = 4000
+const MAX_CUSTOM_AGENT_PROCESS_NAME_LENGTH = 120
 const MAX_CUSTOM_AGENT_IMAGE_DATA_URL_LENGTH = 350_000
 
 export function isCustomAgentId(value: unknown): value is CustomAgentId {
@@ -93,6 +96,10 @@ export function normalizeCustomAgents(value: unknown): CustomAgentDefinition[] {
     if (!name || !command) {
       continue
     }
+    const processName =
+      typeof item.processName === 'string'
+        ? item.processName.trim().slice(0, MAX_CUSTOM_AGENT_PROCESS_NAME_LENGTH)
+        : ''
     const promptMode =
       item.promptMode === 'argv' || item.promptMode === 'template' ? item.promptMode : 'pty'
     const promptTemplate =
@@ -111,6 +118,7 @@ export function normalizeCustomAgents(value: unknown): CustomAgentDefinition[] {
       id: item.id,
       name,
       command,
+      ...(processName ? { processName } : {}),
       promptMode,
       ...(promptTemplate ? { promptTemplate } : {}),
       icon,
@@ -142,14 +150,6 @@ function normalizeCustomAgentIcon(value: unknown, name: string): CustomAgentIcon
     return { kind: 'image', dataUrl: icon.dataUrl, fileName: icon.fileName.slice(0, 160) }
   }
   return { kind: 'letter', value: name.charAt(0).toUpperCase() }
-}
-
-export function isCustomAgentEnabled(
-  agent: AgentId,
-  customAgents: readonly CustomAgentDefinition[] | null | undefined
-): boolean {
-  const custom = isCustomAgentId(agent) ? customAgents?.find((item) => item.id === agent) : null
-  return custom ? custom.enabled : true
 }
 
 export function customAgentForId(

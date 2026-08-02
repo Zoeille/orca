@@ -222,7 +222,7 @@ import type {
   CodexRateLimitAccountsState
 } from '../../shared/types'
 import type { AgentId } from '../../shared/custom-agent'
-import { customAgentForId, isAgentId, isCustomAgentId } from '../../shared/custom-agent'
+import { isAgentId, isCustomAgentId } from '../../shared/custom-agent'
 import type { TaskSourceContext } from '../../shared/task-source-context'
 import { assertWorktreeUnlockedForRemoval } from '../../shared/worktree-removal'
 import {
@@ -392,6 +392,7 @@ import {
 } from '../../shared/agent-process-recognition'
 import {
   haveSameDisabledTuiAgents,
+  isAgentEnabled,
   isTuiAgentEnabled,
   pickTuiAgent
 } from '../../shared/tui-agent-selection'
@@ -19986,9 +19987,7 @@ export class OrcaRuntimeService {
     }
     let agent =
       (isTuiAgent(preferredAgent) || isCustomAgentId(preferredAgent)) &&
-      isTuiAgentEnabled(preferredAgent, settings.disabledTuiAgents) &&
-      (!isCustomAgentId(preferredAgent) ||
-        customAgentForId(preferredAgent, settings.customAgents)?.enabled === true)
+      isAgentEnabled(preferredAgent, settings)
         ? preferredAgent
         : null
     if (!agent) {
@@ -20088,10 +20087,7 @@ export class OrcaRuntimeService {
       throw new Error('runtime_unavailable')
     }
     const settings = this.store.getSettings()
-    if (
-      !isTuiAgentEnabled(agent, settings.disabledTuiAgents) ||
-      (isCustomAgentId(agent) && customAgentForId(agent, settings.customAgents)?.enabled !== true)
-    ) {
+    if (!isAgentEnabled(agent, settings)) {
       throw new Error('Selected agent is disabled. Choose an enabled agent before creating.')
     }
     // Why: CLI clients may target SSH runtimes from macOS/Windows, so quote for
@@ -20571,18 +20567,14 @@ export class OrcaRuntimeService {
     const createSettings = this.store.getSettings()
     const requestedAgent = args.startupAgent ?? args.createdWithAgent
     const requestedAgentEnabled =
-      requestedAgent !== undefined
-        ? isTuiAgentEnabled(requestedAgent, createSettings.disabledTuiAgents) &&
-          (!isCustomAgentId(requestedAgent) ||
-            customAgentForId(requestedAgent, createSettings.customAgents)?.enabled === true)
-        : false
+      requestedAgent !== undefined ? isAgentEnabled(requestedAgent, createSettings) : false
     if ((args.startup || args.startupAgent) && requestedAgent && !requestedAgentEnabled) {
       throw new Error('Selected agent is disabled. Choose an enabled agent before creating.')
     }
     if (
       args.startup &&
       args.startupDraftPaste &&
-      !isTuiAgentEnabled(args.startupDraftPaste.agent, createSettings.disabledTuiAgents)
+      !isAgentEnabled(args.startupDraftPaste.agent, createSettings)
     ) {
       throw new Error('Selected agent is disabled. Choose an enabled agent before creating.')
     }
@@ -23952,7 +23944,7 @@ export class OrcaRuntimeService {
         )
         .digest('base64url')
       const settings = this.store!.getSettings()
-      if (!isTuiAgentEnabled(request.agent, settings.disabledTuiAgents)) {
+      if (!isAgentEnabled(request.agent, settings)) {
         throw new Error('Selected agent is disabled. Choose an enabled agent before creating.')
       }
       const platform = this.getAgentLaunchPlatformForWorkspace(workspace)
@@ -24905,11 +24897,7 @@ export class OrcaRuntimeService {
       throw new Error('runtime_unavailable')
     }
     const settings = this.store.getSettings()
-    if (
-      !isTuiAgentEnabled(opts.agent, settings.disabledTuiAgents) ||
-      (isCustomAgentId(opts.agent) &&
-        customAgentForId(opts.agent, settings.customAgents)?.enabled !== true)
-    ) {
+    if (!isAgentEnabled(opts.agent, settings)) {
       throw new Error('Selected agent is disabled. Choose an enabled agent before creating.')
     }
     // Why: mobile may be iOS while the shell host is Windows/macOS/Linux or SSH Linux; quote for the host shell.

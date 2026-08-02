@@ -20,7 +20,8 @@ import AgentCombobox from '@/components/agent/AgentCombobox'
 import { getAgentCatalog } from '@/lib/agent-catalog'
 import {
   DEFAULT_DISABLED_TUI_AGENTS,
-  filterEnabledTuiAgents
+  filterEnabledTuiAgents,
+  isAgentEnabled
 } from '../../../shared/tui-agent-selection'
 import { useAppStore } from '@/store'
 import { cn } from '@/lib/utils'
@@ -34,11 +35,7 @@ import {
 import { getScreenSubmitModifierLabel } from '@/lib/screen-submit-shortcut'
 import { useContextualTour } from '@/components/contextual-tours/use-contextual-tour'
 import type { AgentId } from '../../../shared/custom-agent'
-import {
-  EMPTY_CUSTOM_AGENTS,
-  isCustomAgentId,
-  isCustomAgentEnabled
-} from '../../../shared/custom-agent'
+import { EMPTY_CUSTOM_AGENTS, isCustomAgentId } from '../../../shared/custom-agent'
 import type {
   GitHubWorkItem,
   GitLabWorkItem,
@@ -511,7 +508,7 @@ export default function NewWorkspaceComposerCard({
     )
     return getAgentCatalog(customAgents).filter((agent) =>
       isCustomAgentId(agent.id)
-        ? isCustomAgentEnabled(agent.id, customAgents)
+        ? isAgentEnabled(agent.id, { customAgents })
         : enabledIds.has(agent.id) && (detectedAgentIds === null || detectedAgentIds.has(agent.id))
     )
   }, [customAgents, detectedAgentIds, disabledTuiAgents])

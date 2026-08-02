@@ -9596,7 +9596,7 @@
         },
         "CustomAgentDialog": {
           "required": "Name and command are required.",
-          "promptPlaceholder": "The template must include {prompt}.",
+          "promptPlaceholder": "The template must include {prompt} as a bare argument, not inside quotes.",
           "editTitle": "Edit custom agent",
           "createTitle": "Create custom agent",
           "description": "Configure a command Orca can launch in a terminal.",
@@ -9612,6 +9612,8 @@
           "cancel": "Cancel",
           "save": "Save agent",
           "commandPlaceholder": "my-agent --interactive",
+          "processName": "Process name (optional)",
+          "processNameHint": "Set this when the command is a launcher, so Orca watches the agent instead of the launcher.",
           "importIconFailed": "Failed to import icon"
         },
         "MobileRelayStatusSection": {

@@ -230,7 +230,8 @@ import {
   DEFAULT_SOURCE_CONTROL_ACTION_COMMAND_TEMPLATES,
   SOURCE_CONTROL_TEXT_ACTION_IDS
 } from '../shared/source-control-ai-actions'
-import { normalizeAgentIds, normalizeCustomAgents } from '../shared/custom-agent'
+import { normalizeCustomAgents } from '../shared/custom-agent'
+import { normalizeDisabledTuiAgents } from '../shared/tui-agent-selection'
 import {
   DEFAULT_TUI_AGENT_ARGS,
   DEFAULT_TUI_AGENT_ENV,
@@ -3097,7 +3098,9 @@ export class Store {
         if (!claudeAgentTeamsDefaultDisabledMigrated) {
           this.loadNeedsSave = true
         }
-        const migratedDisabledTuiAgents = normalizeAgentIds(parsed.settings?.disabledTuiAgents)
+        const migratedDisabledTuiAgents = normalizeDisabledTuiAgents(
+          parsed.settings?.disabledTuiAgents
+        )
         const migratedAgentYoloDefaults = migrateAgentYoloDefaults(parsed.settings)
         if (
           parsed.settings?.agentYoloDefaultsMigrated !== true ||
@@ -5481,7 +5484,7 @@ export class Store {
       sanitizedUpdates.showMenuBarIcon = updates.showMenuBarIcon === true
     }
     if ('disabledTuiAgents' in updates) {
-      sanitizedUpdates.disabledTuiAgents = normalizeAgentIds(updates.disabledTuiAgents)
+      sanitizedUpdates.disabledTuiAgents = normalizeDisabledTuiAgents(updates.disabledTuiAgents)
     }
     if ('customAgents' in updates) {
       sanitizedUpdates.customAgents = normalizeCustomAgents(updates.customAgents)

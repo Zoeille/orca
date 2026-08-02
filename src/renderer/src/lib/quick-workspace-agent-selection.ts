@@ -1,12 +1,11 @@
 import type { TuiAgent } from '../../../shared/types'
 import {
-  customAgentForId,
   isCustomAgentId,
   type AgentId,
   type CustomAgentDefinition
 } from '../../../shared/custom-agent'
 import {
-  isTuiAgentEnabled,
+  isAgentEnabled,
   pickTuiAgent,
   TUI_AGENT_AUTO_PICK_ORDER
 } from '../../../shared/tui-agent-selection'
@@ -21,8 +20,7 @@ export function pickQuickWorkspaceAgent(
     preferred &&
     preferred !== 'blank' &&
     isCustomAgentId(preferred) &&
-    isTuiAgentEnabled(preferred, disabledTuiAgents) &&
-    customAgentForId(preferred, customAgents)?.enabled === true
+    isAgentEnabled(preferred, { disabledTuiAgents, customAgents })
   ) {
     return preferred
   }
@@ -52,13 +50,13 @@ function isQuickWorkspaceAgentAvailable(
   disabledTuiAgents?: Iterable<unknown> | null,
   customAgents?: readonly CustomAgentDefinition[]
 ): boolean {
-  if (!isTuiAgentEnabled(agent, disabledTuiAgents)) {
+  if (!isAgentEnabled(agent, { disabledTuiAgents, customAgents })) {
     return false
   }
   return (
-    (isCustomAgentId(agent) && customAgentForId(agent, customAgents)?.enabled === true) ||
-    (!isCustomAgentId(agent) &&
-      (detectedAgentIds === null || hasDetectedAgent(detectedAgentIds, agent as TuiAgent)))
+    isCustomAgentId(agent) ||
+    detectedAgentIds === null ||
+    hasDetectedAgent(detectedAgentIds, agent as TuiAgent)
   )
 }
 

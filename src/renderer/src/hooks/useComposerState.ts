@@ -19,6 +19,7 @@ import type { WorktreeCreationRequest } from '@/lib/pending-worktree-creation'
 import { buildAgentDraftLaunchPlan, buildAgentStartupPlan } from '@/lib/tui-agent-startup'
 import {
   filterEnabledTuiAgents,
+  isAgentEnabled,
   isTuiAgentEnabled,
   normalizeDisabledTuiAgents
 } from '../../../shared/tui-agent-selection'
@@ -32,7 +33,6 @@ import {
 } from '../../../shared/tui-agent-launch-defaults'
 import { tuiAgentToAgentKind } from '@/lib/telemetry'
 import {
-  customAgentForId,
   isCustomAgentId,
   type AgentId,
   type CustomAgentDefinition
@@ -435,16 +435,12 @@ function buildSetupAgentStartupHookSettings(
   }
 }
 
-// Why: `isTuiAgentEnabled` no-ops (always true) for custom agent ids — it only
-// gates the built-in TUI catalog. Custom agents carry their own `enabled` flag.
 function isRequestedAgentEnabled(
   agent: AgentId,
   disabledTuiAgents: Iterable<unknown> | null | undefined,
   customAgents: readonly CustomAgentDefinition[] | undefined
 ): boolean {
-  return isCustomAgentId(agent)
-    ? customAgentForId(agent, customAgents)?.enabled === true
-    : isTuiAgentEnabled(agent, disabledTuiAgents)
+  return isAgentEnabled(agent, { disabledTuiAgents, customAgents })
 }
 
 export function resolveInitialWorkspaceRunSeed({

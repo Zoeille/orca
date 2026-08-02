@@ -6,6 +6,8 @@ import type {
   CustomAgentIcon,
   CustomAgentPromptMode
 } from '../../../../shared/custom-agent'
+import { isCustomAgentPromptTemplateSafe } from '../../../../shared/custom-agent'
+import { deriveCustomAgentProcessName } from '../../../../shared/tui-agent-command-resolution'
 import { Button } from '../ui/button'
 import {
   Dialog,
@@ -38,6 +40,7 @@ export function CustomAgentDialog({
 }: CustomAgentDialogProps): React.JSX.Element {
   const [name, setName] = useState(initialAgent?.name ?? '')
   const [command, setCommand] = useState(initialAgent?.command ?? '')
+  const [processName, setProcessName] = useState(initialAgent?.processName ?? '')
   const [promptMode, setPromptMode] = useState<CustomAgentPromptMode>(
     initialAgent?.promptMode ?? 'pty'
   )
@@ -47,6 +50,7 @@ export function CustomAgentDialog({
   const resetFromProps = useCallback((): void => {
     setName(initialAgent?.name ?? '')
     setCommand(initialAgent?.command ?? '')
+    setProcessName(initialAgent?.processName ?? '')
     setPromptMode(initialAgent?.promptMode ?? 'pty')
     setPromptTemplate(initialAgent?.promptTemplate ?? '')
     setIcon(initialAgent?.icon ?? defaultIcon)
@@ -55,6 +59,8 @@ export function CustomAgentDialog({
   useEffect(() => {
     resetFromProps()
   }, [open, resetFromProps])
+
+  const derivedProcessName = deriveCustomAgentProcessName(command) || 'my-agent'
 
   const save = (): void => {
     const trimmedName = name.trim()
@@ -68,11 +74,11 @@ export function CustomAgentDialog({
       )
       return
     }
-    if (promptMode === 'template' && !promptTemplate.includes('{prompt}')) {
+    if (promptMode === 'template' && !isCustomAgentPromptTemplateSafe(promptTemplate)) {
       toast.error(
         translate(
           'auto.components.settings.CustomAgentDialog.promptPlaceholder',
-          'The template must include {prompt}.'
+          'The template must include {prompt} as a bare argument, not inside quotes.'
         )
       )
       return
@@ -80,6 +86,7 @@ export function CustomAgentDialog({
     onSave({
       name: trimmedName,
       command: trimmedCommand,
+      ...(processName.trim() ? { processName: processName.trim() } : {}),
       promptMode,
       ...(promptMode === 'template' ? { promptTemplate: promptTemplate.trim() } : {}),
       icon,
@@ -146,6 +153,28 @@ export function CustomAgentDialog({
                 'my-agent --interactive'
               )}
             />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="custom-agent-process-name">
+              {translate(
+                'auto.components.settings.CustomAgentDialog.processName',
+                'Process name (optional)'
+              )}
+            </Label>
+            <Input
+              id="custom-agent-process-name"
+              value={processName}
+              onChange={(event) => setProcessName(event.target.value)}
+              spellCheck={false}
+              className="font-mono"
+              placeholder={derivedProcessName}
+            />
+            <p className="text-xs text-muted-foreground">
+              {translate(
+                'auto.components.settings.CustomAgentDialog.processNameHint',
+                'Set this when the command is a launcher, so Orca watches the agent instead of the launcher.'
+              )}
+            </p>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="custom-agent-prompt-mode">
